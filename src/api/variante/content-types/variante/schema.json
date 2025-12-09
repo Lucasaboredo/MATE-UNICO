@@ -1,0 +1,26 @@
+{
+  "kind": "collectionType",
+  "collectionName": "variantes",
+  "info": {
+    "singularName": "variante",
+    "pluralName": "variantes",
+    "displayName": "Variante"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "nombre": {
+      "type": "string",
+      "required": true
+    },
+    "stock": {
+      "type": "integer",
+      "required": true
+    },
+    "precio": {
+      "type": "decimal"
+    }
+  }
+}
