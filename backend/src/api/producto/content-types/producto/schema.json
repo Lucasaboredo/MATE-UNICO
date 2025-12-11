@@ -29,16 +29,43 @@
     "material": {
       "type": "string"
     },
-    "categoria": {
-      "type": "relation",
-      "relation": "oneToOne",
-      "target": "api::categoria.categoria",
-      "inversedBy": "producto"
-    },
     "variantes": {
       "type": "component",
       "component": "inventario.variantes",
       "repeatable": true
+    },
+    "imagen": {
+      "type": "media",
+      "multiple": true,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "combo": {
+      "type": "enumeration",
+      "enum": [
+        "mate",
+        "mate_bombilla",
+        "mate_bombilla_bolso"
+      ]
+    },
+    "color": {
+      "type": "enumeration",
+      "enum": [
+        "blanco",
+        "negro",
+        "gris",
+        "rojo",
+        "bordo"
+      ]
+    },
+    "categoria": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::categoria.categoria"
     }
   }
 }

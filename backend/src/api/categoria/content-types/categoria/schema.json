@@ -20,11 +20,10 @@
       "type": "string",
       "required": false
     },
-    "producto": {
+    "productos": {
       "type": "relation",
-      "relation": "oneToOne",
-      "target": "api::producto.producto",
-      "mappedBy": "categoria"
+      "relation": "oneToMany",
+      "target": "api::producto.producto"
     }
   }
 }
