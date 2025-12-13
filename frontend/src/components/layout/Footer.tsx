@@ -12,7 +12,7 @@ const inter = Inter({
 
 export default function Footer() {
   return (
-    <footer className="w-full mt-16">
+    <footer className="w-full">
       {/* BLOQUE GRIS CLARO (B3B3B3) */}
       <div className="w-full bg-[#B3B3B3]">
         <div

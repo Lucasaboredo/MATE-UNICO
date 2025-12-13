@@ -1,6 +1,6 @@
 // src/app/layout.tsx
 
-import "./globals.css";               // 👈 ESTO ES LO QUE FALTABA
+import "./globals.css";
 import type { ReactNode } from "react";
 
 import Header from "@/components/layout/Header";
@@ -12,16 +12,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <Header />
 
-        <main>{children}</main>
+        {/* AGREGAMOS PADDING PARA QUE EL HEADER FIJO NO TAPE EL CONTENIDO */}
+        <main className="pt-[140px]">
+          {children}
+        </main>
 
         <Footer />
       </body>
     </html>
   );
 }
-
-
-
-
-
 

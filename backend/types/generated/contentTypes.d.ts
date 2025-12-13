@@ -520,7 +520,8 @@ export interface ApiHomeHome extends Struct.CollectionTypeSchema {
       true
     >;
     imagen_hero: Schema.Attribute.Media<
-      'images' | 'files' | 'videos' | 'audios'
+      'images' | 'files' | 'videos' | 'audios',
+      true
     >;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::home.home'> &
@@ -551,7 +552,7 @@ export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
       'api::categoria.categoria'
     >;
     color: Schema.Attribute.Enumeration<
-      ['blanco', 'negro', 'gris', 'rojo', 'bordo']
+      ['blanco', 'negro', 'gris', 'marron', 'bordo']
     >;
     combo: Schema.Attribute.Enumeration<
       ['mate', 'mate_bombilla', 'mate_bombilla_bolso']
@@ -560,6 +561,7 @@ export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     descripcion: Schema.Attribute.String;
+    destacado: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     imagen: Schema.Attribute.Media<
       'images' | 'files' | 'videos' | 'audios',
       true

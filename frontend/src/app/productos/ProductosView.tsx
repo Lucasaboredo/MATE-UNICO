@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { ProductoCard } from "@/components/ProductoCard";
 
-// Opciones de filtros (lo que ve el usuario vs lo que guarda Strapi)
+// ================== CONSTANTES ==================
+
 const CATEGORIAS = [
   { label: "Todas", value: null },
   { label: "Calabaza", value: "Calabaza" },
@@ -22,31 +23,50 @@ const COLORES = [
   { label: "Blanco", value: "blanco", dotClass: "bg-white border border-[#ccc]" },
   { label: "Negro", value: "negro", dotClass: "bg-black" },
   { label: "Gris", value: "gris", dotClass: "bg-gray-500" },
-  { label: "Rojo", value: "rojo", dotClass: "bg-red-600" },
+  { label: "Marrón", value: "marrón", dotClass: "bg-[#964B00]" },
   { label: "Bordo", value: "bordo", dotClass: "bg-[#8B0000]" },
 ];
+
+type OrdenPrecio = "asc" | "desc" | null;
+
+// ================== COMPONENTE ==================
 
 export default function ProductosView({ productos }: { productos: any[] }) {
   const [categoria, setCategoria] = useState<string | null>(null);
   const [combo, setCombo] = useState<string | null>(null);
   const [color, setColor] = useState<string | null>(null);
+  const [ordenPrecio, setOrdenPrecio] = useState<OrdenPrecio>(null);
 
-  // FILTRADO
-  const productosFiltrados = useMemo(() => {
-    return productos.filter((p) => {
+  // ================== FILTRADO + ORDEN ==================
+  const productosProcesados = useMemo(() => {
+    let resultado = productos.filter((p) => {
       if (categoria && p.categoria?.nombre !== categoria) return false;
       if (combo && p.combo !== combo) return false;
       if (color && p.color !== color) return false;
       return true;
     });
-  }, [productos, categoria, combo, color]);
+
+    if (ordenPrecio === "asc") {
+      resultado = [...resultado].sort(
+        (a, b) => a.precioBase - b.precioBase
+      );
+    }
+
+    if (ordenPrecio === "desc") {
+      resultado = [...resultado].sort(
+        (a, b) => b.precioBase - a.precioBase
+      );
+    }
+
+    return resultado;
+  }, [productos, categoria, combo, color, ordenPrecio]);
 
   return (
     <main className="w-full bg-[#F4F1EB] min-h-screen">
       <section className="mx-auto max-w-[1400px] px-6 py-12 flex gap-12">
 
-        {/* =============== SIDEBAR =============== */}
-        <aside className="w-64 pr-8 border-r border-[#E0DCD3] relative z-20 select-none">
+        {/* ================= SIDEBAR ================= */}
+        <aside className="w-64 pr-8 border-r border-[#E0DCD3] select-none">
           <h2 className="text-[42px] font-bold text-[#5C5149] mb-6">
             Producto
           </h2>
@@ -61,7 +81,7 @@ export default function ProductosView({ productos }: { productos: any[] }) {
                   <li key={c.label}>
                     <button
                       type="button"
-                      onClick={() => setCategoria(c.value)}
+                      onClick={() => setCategoria(active ? null : c.value)}
                       className={`cursor-pointer text-left ${
                         active
                           ? "text-[#5C5149] font-semibold"
@@ -86,7 +106,7 @@ export default function ProductosView({ productos }: { productos: any[] }) {
                   <li key={c.label}>
                     <button
                       type="button"
-                      onClick={() => setCombo(c.value)}
+                      onClick={() => setCombo(active ? null : c.value)}
                       className={`cursor-pointer text-left ${
                         active
                           ? "text-[#5C5149] font-semibold not-italic"
@@ -98,17 +118,6 @@ export default function ProductosView({ productos }: { productos: any[] }) {
                   </li>
                 );
               })}
-
-              {/* Botón para limpiar combo */}
-              <li>
-                <button
-                  type="button"
-                  onClick={() => setCombo(null)}
-                  className="mt-2 text-xs text-[#5C5149]/60 hover:text-[#5C5149]"
-                >
-                  Limpiar combos
-                </button>
-              </li>
             </ul>
           </div>
 
@@ -125,7 +134,7 @@ export default function ProductosView({ productos }: { productos: any[] }) {
                   <li
                     key={c.label}
                     className="flex items-center gap-2 cursor-pointer"
-                    onClick={() => setColor(c.value)}
+                    onClick={() => setColor(active ? null : c.value)}
                   >
                     <span
                       className={
@@ -146,30 +155,45 @@ export default function ProductosView({ productos }: { productos: any[] }) {
                   </li>
                 );
               })}
-
-              {/* limpiar color */}
-              <li>
-                <button
-                  type="button"
-                  onClick={() => setColor(null)}
-                  className="mt-2 text-xs text-[#5C5149]/60 hover:text-[#5C5149]"
-                >
-                  Limpiar color
-                </button>
-              </li>
             </ul>
           </div>
         </aside>
 
-        {/* =============== GRID PRODUCTOS =============== */}
-        <div className="flex-1 relative z-10">
+        {/* ================= CONTENIDO ================= */}
+        <div className="flex-1">
+
+          {/* ORDENAR ARRIBA DERECHA */}
+          <div className="flex justify-end mb-6">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-[#5C5149]">
+                Ordenar por:
+              </span>
+              <select
+                value={ordenPrecio ?? ""}
+                onChange={(e) =>
+                  setOrdenPrecio(
+                    e.target.value === ""
+                      ? null
+                      : (e.target.value as OrdenPrecio)
+                  )
+                }
+                className="border border-[#E0DCD3] rounded-md px-3 py-1.5 text-sm bg-white text-[#5C5149] focus:outline-none focus:ring-2 focus:ring-[#486837]/40"
+              >
+                <option value="">Sin ordenar</option>
+                <option value="asc">Precio: menor a mayor</option>
+                <option value="desc">Precio: mayor a menor</option>
+              </select>
+            </div>
+          </div>
+
+          {/* GRID */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10">
-            {productosFiltrados.map((p: any) => (
+            {productosProcesados.map((p: any) => (
               <ProductoCard key={p.id} producto={p} />
             ))}
 
-            {productosFiltrados.length === 0 && (
-              <p className="text-[#5C5149]/70">
+            {productosProcesados.length === 0 && (
+              <p className="text-[#5C5149]/70 col-span-full">
                 No hay productos que coincidan con los filtros seleccionados.
               </p>
             )}

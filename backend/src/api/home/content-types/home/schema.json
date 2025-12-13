@@ -25,7 +25,7 @@
     },
     "imagen_hero": {
       "type": "media",
-      "multiple": false,
+      "multiple": true,
       "allowedTypes": [
         "images",
         "files",

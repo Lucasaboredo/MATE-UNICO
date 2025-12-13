@@ -3,18 +3,35 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Tilt_Warp, Inter } from "next/font/google";
+import { useEffect, useState } from "react";
 
 // Fuentes
 const tilt = Tilt_Warp({ subsets: ["latin"], weight: "400" });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600"] });
 
 export default function Header() {
+  const [shadow, setShadow] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShadow(window.scrollY > 10); // agrega sombra al scrollear un poco
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <header className="w-full">
-      {/* 🔹 BARRA SUPERIOR VERDE COMPACTADA */}
+    <header
+      className={`w-full fixed top-0 left-0 z-50 transition-shadow duration-300 ${
+        shadow ? "shadow-md" : "shadow-none"
+      }`}
+    >
+      {/* 🔹 BARRA SUPERIOR VERDE */}
       <div className="w-full bg-[#5F6B58] h-[95px] flex items-center">
         <div className="mx-auto flex max-w-[1400px] w-full items-center justify-between px-10">
-          {/* LOGO + TEXTO */}
+          
+          {/* LOGO */}
           <div className="flex items-center gap-1">
             <Image
               src="/logo-mate.svg"
@@ -32,9 +49,8 @@ export default function Header() {
             </span>
           </div>
 
-          {/* ICONOS: carrito IZQ — usuario DER */}
+          {/* ICONOS */}
           <div className="flex flex-row items-center gap-12">
-            {/* Carrito */}
             <button aria-label="Carrito">
               <Image
                 src="/icon-cart.svg"
@@ -45,7 +61,6 @@ export default function Header() {
               />
             </button>
 
-            {/* Usuario */}
             <button aria-label="Usuario">
               <Image
                 src="/icon-user.svg"
@@ -73,22 +88,3 @@ export default function Header() {
     </header>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

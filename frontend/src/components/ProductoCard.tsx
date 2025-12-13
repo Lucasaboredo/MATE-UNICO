@@ -4,25 +4,36 @@ export function ProductoCard({ producto }: any) {
   const img = producto?.imagen?.[0];
 
   return (
-    <div className="bg-[#3F3A36] rounded-xl overflow-hidden shadow-md hover:scale-[1.02] transition">
+    <div className="
+      bg-[#5C5149]
+      rounded-2xl
+      p-4
+      shadow-[0_8px_20px_rgba(0,0,0,0.25)]
+      transition-all
+      duration-200
+      hover:-translate-y-1
+      hover:shadow-[0_12px_28px_rgba(0,0,0,0.35)]
+    ">
       
-      {/* Imagen FULL-BORDER estilo figma */}
+      {/* Imagen */}
       {img && (
-        <Image
-          src={`http://localhost:1337${img.url}`}
-          alt={producto.nombre}
-          width={400}
-          height={300}
-          className="w-full h-64 object-cover"
-        />
+        <div className="relative w-full h-64 mb-4 overflow-hidden rounded-xl">
+          <Image
+            src={`http://localhost:1337${img.url}`}
+            alt={producto.nombre}
+            fill
+            className="object-cover"
+          />
+        </div>
       )}
 
-      <div className="p-4">
-        <h2 className="text-xl font-semibold text-[#FCFAF6]">
+      {/* Info */}
+      <div className="px-1">
+        <h2 className="text-[17px] font-semibold text-[#FCFAF6] leading-snug">
           {producto.nombre}
         </h2>
 
-        <p className="text-[#FCFAF6]/70 mt-1">
+        <p className="mt-1 text-[15px] font-medium text-[#FCFAF6]">
           ${producto.precioBase?.toLocaleString("es-AR")}
         </p>
       </div>

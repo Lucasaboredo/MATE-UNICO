@@ -48,7 +48,7 @@ export default function SidebarFiltros({ categorias }: any) {
       <h3 className="text-xl font-semibold text-green-900 mb-3">Color</h3>
 
       <ul className="space-y-2 mb-6">
-        {["blanco", "negro", "gris", "rojo", "bordo"].map((color) => (
+        {["blanco", "negro", "gris", "marron", "bordo"].map((color) => (
           <li
             key={color}
             onClick={() => aplicarFiltro("color", color)}
