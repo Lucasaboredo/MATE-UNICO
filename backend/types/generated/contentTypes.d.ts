@@ -499,6 +499,38 @@ export interface ApiCategoriaCategoria extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiCuponCupon extends Struct.CollectionTypeSchema {
+  collectionName: 'cupons';
+  info: {
+    displayName: 'Cupon';
+    pluralName: 'cupons';
+    singularName: 'cupon';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    activo: Schema.Attribute.Boolean;
+    codigo: Schema.Attribute.String & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    fecha_vencimiento: Schema.Attribute.Date;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::cupon.cupon'> &
+      Schema.Attribute.Private;
+    max_usos: Schema.Attribute.Integer;
+    monto_minimo: Schema.Attribute.Decimal;
+    publishedAt: Schema.Attribute.DateTime;
+    tipo: Schema.Attribute.Enumeration<['porcentaje', 'monto-fijo']>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    usos_realizados: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    valor: Schema.Attribute.Decimal;
+  };
+}
+
 export interface ApiHomeHome extends Struct.CollectionTypeSchema {
   collectionName: 'homes';
   info: {
@@ -1190,6 +1222,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
       'api::categoria.categoria': ApiCategoriaCategoria;
+      'api::cupon.cupon': ApiCuponCupon;
       'api::home.home': ApiHomeHome;
       'api::opinion.opinion': ApiOpinionOpinion;
       'api::orden.orden': ApiOrdenOrden;

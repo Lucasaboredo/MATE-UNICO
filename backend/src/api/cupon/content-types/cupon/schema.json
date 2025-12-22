@@ -1,0 +1,45 @@
+{
+  "kind": "collectionType",
+  "collectionName": "cupons",
+  "info": {
+    "singularName": "cupon",
+    "pluralName": "cupons",
+    "displayName": "Cupon"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "codigo": {
+      "type": "string",
+      "required": true
+    },
+    "tipo": {
+      "type": "enumeration",
+      "enum": [
+        "porcentaje",
+        "monto-fijo"
+      ]
+    },
+    "valor": {
+      "type": "decimal"
+    },
+    "activo": {
+      "type": "boolean"
+    },
+    "fecha_vencimiento": {
+      "type": "date"
+    },
+    "monto_minimo": {
+      "type": "decimal"
+    },
+    "max_usos": {
+      "type": "integer"
+    },
+    "usos_realizados": {
+      "type": "integer",
+      "default": 0
+    }
+  }
+}

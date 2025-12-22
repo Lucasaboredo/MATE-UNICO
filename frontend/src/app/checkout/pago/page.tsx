@@ -6,24 +6,72 @@ import { useRouter } from "next/navigation";
 import Stepper from "@/components/stepper/Stepper";
 import { useCart } from "@/lib/cartContext";
 import { useCheckout } from "@/lib/checkoutContext";
-import type { CartItem } from "@/types/cart";
 import { fetchFromStrapi } from "@/lib/api";
+
+/* ================= STRAPI HOST ================= */
+const STRAPI_HOST =
+  process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
+  process.env.NEXT_PUBLIC_STRAPI_URL ||
+  "http://localhost:1337";
+
+function toAbsoluteUrl(url?: string | null) {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  if (url.startsWith("/")) return `${STRAPI_HOST}${url}`;
+  return `${STRAPI_HOST}/${url}`;
+}
+
+/* ================= IMAGEN SEGURA ================= */
+function getImageFromCartItem(item: any): string {
+  const direct =
+    item?.imagenUrl ||
+    item?.imageUrl ||
+    item?.thumbnail ||
+    item?.img ||
+    item?.imagen;
+
+  if (typeof direct === "string" && direct) {
+    return toAbsoluteUrl(direct);
+  }
+
+  const strapiSingle =
+    item?.imagen?.data?.attributes?.url ||
+    item?.image?.data?.attributes?.url;
+
+  if (strapiSingle) return toAbsoluteUrl(strapiSingle);
+
+  const strapiMulti =
+    item?.imagen?.data?.[0]?.attributes?.url ||
+    item?.images?.data?.[0]?.attributes?.url;
+
+  if (strapiMulti) return toAbsoluteUrl(strapiMulti);
+
+  return "/placeholder-mate.png";
+}
 
 export default function CheckoutPagoPage() {
   const router = useRouter();
 
-  // 1️⃣ HOOKS PRIMERO (Siempre arriba para evitar errores de React)
   const { items, total, clearCart } = useCart();
   const { buyer, shipping } = useCheckout();
 
   const [msg, setMsg] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Calculamos valores derivados
+  /* ================= CUPÓN ================= */
+  const [codigoCupon, setCodigoCupon] = useState("");
+  const [descuento, setDescuento] = useState(0);
+  const [cuponMsg, setCuponMsg] = useState<string | null>(null);
+  const [aplicandoCupon, setAplicandoCupon] = useState(false);
+
+  const cuponAplicado = descuento > 0;
+
+  /* ================= TOTALES ================= */
   const envio = Number(shipping.costoEnvio ?? 0);
   const totalFinal = Number(total) + envio;
+  const totalConCupon = Math.max(totalFinal - descuento, 0);
 
-  // 2️⃣ USEMEMO (Siempre se ejecuta antes de cualquier return)
+  /* ================= PAYLOAD ORDEN ================= */
   const payload = useMemo(() => {
     return {
       buyer: {
@@ -41,162 +89,215 @@ export default function CheckoutPagoPage() {
         metodoEnvio: shipping.metodoEnvio,
         costoEnvio: shipping.costoEnvio,
       },
-      // Mapeamos items asegurándonos que sea un array para evitar crashes
-      items: (items || []).map((i) => ({
+      items: (items || []).map((i: any) => ({
         productId: i.productId,
         variantId: i.variantId,
         nombre: i.nombre,
-        slug: i.slug,
         precioUnitario: i.precioUnitario,
         cantidad: i.cantidad,
       })),
-      total: totalFinal,
-
-      // 👇 ACÁ ESTÁ EL CAMBIO CLAVE: Usamos "cliente" (el nombre que le pusiste en Strapi)
-      cliente: 1
+      total: totalConCupon,
+      cliente: 1,
     };
-  }, [buyer, shipping, items, total, totalFinal]);
+  }, [buyer, shipping, items, totalConCupon]);
 
-  // 3️⃣ VALIDACIONES Y REDIRECTS (En useEffect para no bloquear el render)
+  /* ================= VALIDACIONES ================= */
   useEffect(() => {
-    // Si estamos procesando o acabamos de terminar (msg existe), no redirigimos todavía
     if (isProcessing || msg) return;
 
-    if (!buyer.email) {
-      router.push("/checkout/datos");
-    } else if (!shipping.codigoPostal) {
-      router.push("/checkout/envio");
-    } else if (!items || items.length === 0) {
-      router.push("/carrito");
-    }
+    if (!buyer.email) router.push("/checkout/datos");
+    else if (!shipping.codigoPostal) router.push("/checkout/envio");
+    else if (!items || items.length === 0) router.push("/carrito");
   }, [buyer, shipping, items, router, isProcessing, msg]);
 
-  // 4️⃣ FUNCIÓN DE CONFIRMACIÓN
+  /* ================= APLICAR CUPÓN ================= */
+  async function aplicarCupon() {
+    if (!codigoCupon) return;
+
+    setAplicandoCupon(true);
+    setCuponMsg(null);
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/cupones/validar`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            codigo: codigoCupon,
+            total: totalFinal,
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error?.message || "Cupón inválido");
+      }
+
+      setDescuento(Number(data.descuento) || 0);
+      setCuponMsg("Cupón aplicado correctamente");
+    } catch (err: any) {
+      setDescuento(0);
+      setCuponMsg(err.message || "Cupón inválido");
+    } finally {
+      setAplicandoCupon(false);
+    }
+  }
+
+  /* ================= CONFIRMAR PAGO ================= */
   async function handleConfirm() {
     setIsProcessing(true);
     setMsg(null);
-    console.log("🚀 Enviando orden a Strapi...", payload);
 
     try {
-      // Usamos /ordens porque ese es el plural que generó tu Strapi
-      const response = await fetchFromStrapi("/ordens", {
+      const orden = await fetchFromStrapi("/ordens", {
         method: "POST",
         body: JSON.stringify({ data: payload }),
       });
 
-      console.log("✅ Orden creada con éxito:", response);
+      const orderId = orden.data.id;
 
-      // Limpiamos carrito y mostramos mensaje
+      const factor = descuento > 0 ? descuento / totalFinal : 0;
+
+      const mpRes = await fetch("/api/pagos/preferencia", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId,
+          items: (items as any[]).map((item) => ({
+            title: item.nombre,
+            quantity: item.cantidad,
+            unit_price: Number(item.precioUnitario) * (1 - factor),
+          })),
+        }),
+      });
+
+      const mpData = await mpRes.json();
+
+      if (!mpData.init_point) {
+        throw new Error("No se pudo iniciar el pago");
+      }
+
       clearCart();
-      setMsg("¡Compra realizada con éxito! Redirigiendo...");
-
-      setTimeout(() => {
-        router.push("/");
-      }, 2000);
-
+      window.location.href = mpData.init_point;
     } catch (error) {
-      console.error("❌ Error creando la orden:", error);
-      setMsg("Hubo un error al procesar tu pedido. Intenta nuevamente.");
-      setIsProcessing(false); // Solo desbloqueamos si falló
+      console.error(error);
+      setMsg("Hubo un error al iniciar el pago.");
+      setIsProcessing(false);
     }
   }
 
-  // 5️⃣ RENDER CONDICIONAL (Al final de todo)
-  // Si falta info crítica y NO estamos mostrando el mensaje de éxito, retornamos null
-  if ((!buyer.email || !shipping.codigoPostal || !items || items.length === 0) && !msg) {
+  if (
+    (!buyer.email || !shipping.codigoPostal || !items || items.length === 0) &&
+    !msg
+  ) {
     return null;
   }
 
+  /* ================= RENDER ================= */
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10">
-      <Stepper currentStep={4} />
+    <div className="min-h-[calc(100vh-140px)] bg-[#FAF7F2]">
+      <div className="mx-auto max-w-5xl px-6 py-12">
+        <Stepper currentStep={4} />
 
-      <div className="mt-10 grid gap-10 md:grid-cols-[1fr_420px]">
-        {/* Sección de Pago */}
-        <section className="rounded-2xl bg-[#FCFAF6] p-6 shadow-sm">
-          <h1 className="text-xl font-semibold text-[#333333]">Pago</h1>
-          <p className="mt-2 text-sm text-[#5C5149]">
-            Esta pantalla es un placeholder. Más adelante se integra la pasarela de pago.
-          </p>
+        {/* PRODUCTOS */}
+        <div className="mt-12 space-y-5">
+          {(items as any[]).map((item) => {
+            const factor = cuponAplicado ? descuento / totalFinal : 0;
+            const precioConDescuento =
+              Number(item.precioUnitario) * (1 - factor);
 
-          <div className="mt-6 space-y-4 rounded-2xl bg-white p-4">
-            <div>
-              <p className="text-sm font-semibold text-[#333333]">Comprador</p>
-              <p className="text-sm text-[#5C5149]">
-                {buyer.nombre} {buyer.apellido}
-              </p>
-              <p className="text-sm text-[#5C5149]">{buyer.email}</p>
-              <p className="text-sm text-[#5C5149]">{buyer.telefono}</p>
-            </div>
+            return (
+              <div
+                key={`${item.productId}-${item.variantId}`}
+                className="flex items-center justify-between rounded-2xl bg-[#6B5E54] px-6 py-5 text-white"
+              >
+                <div className="flex items-center gap-4">
+                  <img
+                    src={getImageFromCartItem(item)}
+                    className="h-16 w-16 rounded-xl object-cover"
+                  />
+                  <div>
+                    <p className="font-medium">{item.nombre}</p>
+                    <p className="text-xs">Cantidad: {item.cantidad}</p>
+                  </div>
+                </div>
 
-            <div className="border-t pt-4">
-              <p className="text-sm font-semibold text-[#333333]">Envío</p>
-              <p className="text-sm text-[#5C5149]">
-                {shipping.calle} {shipping.numero}
-              </p>
-              <p className="text-sm text-[#5C5149]">
-                {shipping.ciudad}, {shipping.provincia}
-              </p>
-              <p className="text-sm text-[#5C5149]">CP: {shipping.codigoPostal}</p>
-              <p className="text-sm text-[#5C5149]">
-                Método: {shipping.metodoEnvio ?? "standard"}
-              </p>
-            </div>
+                <div className="flex flex-col items-end">
+                  {cuponAplicado && (
+                    <span className="text-xs line-through opacity-70">
+                      $
+                      {Number(item.precioUnitario).toLocaleString("es-AR")}
+                    </span>
+                  )}
+                  <span className="text-base font-semibold">
+                    ${precioConDescuento.toLocaleString("es-AR")}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* CUPÓN + TOTAL */}
+        <div className="mt-12 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <input
+              value={codigoCupon}
+              disabled={cuponAplicado}
+              onChange={(e) => setCodigoCupon(e.target.value.toUpperCase())}
+              placeholder="PRIMERA COMPRA"
+              className={`rounded-full px-5 py-2 text-xs ${
+                cuponAplicado
+                  ? "bg-[#E5E5E5] text-[#5C5149]"
+                  : "bg-[#E5DED6] text-[#5C5149]"
+              }`}
+            />
+
+            {cuponAplicado ? (
+              <span className="rounded-full bg-[#4F7A55] px-4 py-2 text-xs font-medium text-white">
+                APLICADO
+              </span>
+            ) : (
+              <button
+                onClick={aplicarCupon}
+                disabled={aplicandoCupon}
+                className="rounded-full bg-[#6B5E54] px-5 py-2 text-xs text-white"
+              >
+                {aplicandoCupon ? "Aplicando..." : "Aplicar"}
+              </button>
+            )}
           </div>
 
-          {msg && (
-            <div className={`mt-4 rounded-lg p-3 text-sm font-medium ${msg.includes("error") ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600"}`}>
-              {msg}
-            </div>
-          )}
+          <div className="flex flex-col items-end rounded-full bg-[#6B5E54] px-7 py-3 text-white">
+            {cuponAplicado && (
+              <span className="text-xs line-through opacity-70">
+                Total: ${totalFinal.toLocaleString("es-AR")}
+              </span>
+            )}
+            <span className="text-sm font-semibold">
+              Ahora: ${totalConCupon.toLocaleString("es-AR")}
+            </span>
+          </div>
+        </div>
 
+        {/* BOTÓN MERCADO PAGO */}
+        <div className="mt-16 flex justify-center">
           <button
             onClick={handleConfirm}
             disabled={isProcessing}
-            className="mt-6 w-full rounded-2xl bg-[#5F6B58] px-6 py-3 font-medium text-white hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="flex items-center gap-3 rounded-full bg-[#009EE3] px-8 py-3 text-white shadow-md hover:opacity-90 disabled:opacity-50"
           >
-            {isProcessing ? "Procesando..." : "Confirmar compra"}
+            <img src="/mercadopago.svg" alt="Mercado Pago" className="h-6 w-6" />
+            <span className="font-medium">
+              {isProcessing ? "Redirigiendo..." : "Pagar con Mercado Pago"}
+            </span>
           </button>
-        </section>
+        </div>
 
-        {/* Resumen final */}
-        <aside className="rounded-2xl bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-[#333333]">Resumen</h2>
-
-          <div className="mt-4 space-y-3">
-            {(items || []).map((item) => {
-              const key = `${item.productId}-${item.variantId ?? "noVar"}`;
-              const lineTotal = item.precioUnitario * item.cantidad;
-
-              return (
-                <div key={key} className="flex justify-between text-sm">
-                  <div>
-                    <p className="font-medium text-[#333333]">{item.nombre}</p>
-                    <p className="text-[#5C5149]">x{item.cantidad}</p>
-                  </div>
-                  <p className="font-medium text-[#333333]">
-                    ${lineTotal.toLocaleString("es-AR")}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-6 space-y-2 border-t pt-4 text-sm">
-            <div className="flex justify-between">
-              <span className="text-[#5C5149]">Subtotal</span>
-              <span className="text-[#333333]">${Number(total).toLocaleString("es-AR")}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[#5C5149]">Envío</span>
-              <span className="text-[#333333]">${envio.toLocaleString("es-AR")}</span>
-            </div>
-            <div className="flex justify-between pt-2 text-base font-semibold">
-              <span className="text-[#333333]">Total</span>
-              <span className="text-[#333333]">${totalFinal.toLocaleString("es-AR")}</span>
-            </div>
-          </div>
-        </aside>
+        {msg && <p className="mt-4 text-center text-red-600">{msg}</p>}
       </div>
     </div>
   );
