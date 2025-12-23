@@ -617,10 +617,15 @@ export interface ApiOrdenOrden extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    estado: Schema.Attribute.Enumeration<['pendiente', 'pagado', 'fallido']> &
+      Schema.Attribute.DefaultTo<'pendiente'>;
+    fecha_pago: Schema.Attribute.DateTime;
     items: Schema.Attribute.JSON;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::orden.orden'> &
       Schema.Attribute.Private;
+    payment_id: Schema.Attribute.String;
+    payment_status: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
     shipping: Schema.Attribute.JSON;
     total: Schema.Attribute.Decimal;
