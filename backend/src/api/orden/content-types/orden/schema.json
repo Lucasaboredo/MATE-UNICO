@@ -28,21 +28,6 @@
       "relation": "manyToOne",
       "target": "plugin::users-permissions.user",
       "inversedBy": "ordens"
-    },
-    "payment_id": {
-      "type": "string"
-    },
-    "status": {
-      "type": "enumeration",
-      "enum": [
-        "pendiente",
-        "pagado",
-        "fallido"
-      ],
-      "default": "pendiente"
-    },
-    "fecha_pago": {
-      "type": "datetime"
     }
   }
 }
