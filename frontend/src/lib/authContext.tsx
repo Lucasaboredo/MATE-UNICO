@@ -16,8 +16,10 @@ export interface User {
     provider?: string;
     confirmed?: boolean;
     blocked?: boolean;
-    createdAt?: string;
-    updatedAt?: string;
+    
+    // ✅ CORREGIDO: Quitamos el '?' para que sean obligatorios
+    createdAt: string;
+    updatedAt: string;
 
     // Identidad
     nombre?: string;

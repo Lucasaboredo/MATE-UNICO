@@ -1,5 +1,6 @@
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 
+// Configuración de Mercado Pago
 const mpConfig = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
 });
@@ -18,7 +19,7 @@ export default {
     }
   },
 
-  // 2. WEBHOOK (Con logs de diagnóstico para detectar errores)
+  // 2. WEBHOOK (Detecta pagos automáticos)
   async webhook(ctx) {
     console.log("🔔 [WEBHOOK] Recibiendo señal de Mercado Pago...");
 
@@ -31,11 +32,11 @@ export default {
       let paymentId = body?.data?.id || query?.id || body?.id;
       const type = body?.type || query?.topic;
 
+      // Si no hay ID o es una notificación de orden de comercio, ignoramos
       if (!paymentId) {
          console.log("⚠️ No se encontró ID de pago en la notificación.");
          return ctx.send({ ok: true });
       }
-
       if (type === "merchant_order") {
          return ctx.send({ ok: true });
       }
@@ -69,46 +70,71 @@ export default {
     }
   },
 
-  // 3. ÉXITO (EL SALVAVIDAS: Actualiza la orden al volver al sitio)
+  // 3. ÉXITO (FIX FINAL: HTML Bridge para evitar bloqueo HTTPS -> HTTP)
   async exito(ctx) {
     try {
-      // Mercado Pago devuelve datos en la URL: ?collection_status=approved&external_reference=123...
-      const { external_reference, status, collection_status, payment_id } = ctx.request.query;
-      
-      // A veces llega como 'status' y a veces como 'collection_status'
+      // Capturamos todos los datos que manda MP en la URL
+      const query = ctx.request.query;
+      const { external_reference, status, collection_status, payment_id } = query;
       const finalStatus = status || collection_status;
 
-      console.log("🚀 [REDIRECCIÓN] Cliente volvió de Mercado Pago");
-      console.log(`Datos: Orden ${external_reference} | Estado: ${finalStatus}`);
+      console.log("🚀 [REDIRECCIÓN] Cliente volvió de Mercado Pago. Estado:", finalStatus);
 
-      // Si está aprobado, actualizamos la orden YA MISMO
+      // 1. PLAN B: Si está aprobado, actualizamos la orden YA MISMO
       if (finalStatus === 'approved' && external_reference) {
         console.log(`💾 Forzando actualización de Orden #${external_reference} a PAGADO`);
-        
         await strapi.entityService.update("api::orden.orden", Number(external_reference), {
-          data: { 
-            estado: 'pagado', 
-            payment_id: String(payment_id) 
-          }
+          data: { estado: 'pagado', payment_id: String(payment_id) }
         });
-        
         console.log("✅ ¡Orden actualizada vía Redirección (Plan B)!");
       }
 
-    } catch (error) {
-      console.error("⚠️ Error intentando actualizar en redirección:", error);
-    }
+      // 2. REDIRECCIÓN SEGURA: Preparamos la URL final con los datos
+      const params = new URLSearchParams(query as any).toString();
+      const targetUrl = `http://localhost:3000/checkout/exito?${params}`;
 
-    // Finalmente enviamos al usuario al frontend
-    ctx.redirect('http://localhost:3000/checkout/exito');
+      // 👇 AQUÍ ESTÁ LA MAGIA: Devolvemos HTML real en lugar de redirect ciego.
+      ctx.set('Content-Type', 'text/html');
+      ctx.body = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Redirigiendo...</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+        </head>
+        <body style="font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #f4f4f5; margin: 0;">
+          <div style="text-align: center; background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
+            <h2 style="color: #2F4A2D; margin: 0 0 0.5rem 0;">¡Pago Recibido!</h2>
+            <p style="color: #71717a; margin-bottom: 2rem;">Te estamos llevando de vuelta a tu orden...</p>
+            
+            <a href="${targetUrl}" style="background-color: #2F4A2D; color: white; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 0.5rem; font-weight: bold; transition: opacity 0.2s;">
+              Haz clic aquí si no redirige automáticamente
+            </a>
+          </div>
+          <script>
+            setTimeout(() => {
+              window.location.href = "${targetUrl}";
+            }, 1000);
+          </script>
+        </body>
+        </html>
+      `;
+
+    } catch (error) {
+      console.error("⚠️ Error en redirección exito:", error);
+      // En caso de error, usamos el redirect normal
+      return ctx.redirect('http://localhost:3000/checkout/exito');
+    }
   },
 
   // 4. OTROS ESTADOS
   async error(ctx) { 
-    ctx.redirect('http://localhost:3000/checkout/error'); 
+    return ctx.redirect('http://localhost:3000/checkout/error'); 
   },
   
   async pendiente(ctx) { 
-    ctx.redirect('http://localhost:3000/checkout/pendiente'); 
+    return ctx.redirect('http://localhost:3000/checkout/pendiente'); 
   }
 };
