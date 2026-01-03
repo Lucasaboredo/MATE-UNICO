@@ -41,6 +41,9 @@
     "fecha_pago": {
       "type": "datetime"
     },
+    "email_confirmacion_enviado_at": {
+      "type": "datetime"
+    },
     "cliente": {
       "type": "relation",
       "relation": "manyToOne",
@@ -49,3 +52,4 @@
     }
   }
 }
+

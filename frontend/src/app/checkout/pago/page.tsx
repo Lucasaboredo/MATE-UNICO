@@ -194,7 +194,7 @@ export default function CheckoutPagoPage() {
       }
 
       // 3️⃣ Crear Preferencia
-      const mpRes = await fetch("/api/pagos/preferencia", {
+      const mpRes = await fetch("/api/pago/preferencia", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId, items: mpItems }),

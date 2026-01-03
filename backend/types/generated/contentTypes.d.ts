@@ -664,6 +664,7 @@ export interface ApiOrdenOrden extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    email_confirmacion_enviado_at: Schema.Attribute.DateTime;
     estado: Schema.Attribute.Enumeration<['pendiente', 'pagado', 'fallido']> &
       Schema.Attribute.DefaultTo<'pendiente'>;
     fecha_pago: Schema.Attribute.DateTime;

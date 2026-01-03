@@ -3,33 +3,34 @@ export default {
     {
       method: "POST",
       path: "/pago/preferencia",
-      handler: "api::pago.pago.crearPreferencia",
+      handler: "api::pago.mercadopago.crearPreferencia",
       config: { auth: false },
     },
     {
       method: "POST",
       path: "/pago/webhook",
-      handler: "api::pago.pago.webhook",
+      handler: "api::pago.mercadopago.webhook",
       config: { auth: false },
     },
-    // 👇 RUTAS DE REDIRECCIÓN (NUEVAS)
     {
-      method: "GET", // Son GET porque el navegador entra ahí
+      method: "GET",
       path: "/pago/exito",
-      handler: "api::pago.pago.exito",
+      handler: "api::pago.mercadopago.exito",
       config: { auth: false },
     },
     {
       method: "GET",
       path: "/pago/error",
-      handler: "api::pago.pago.error",
+      handler: "api::pago.mercadopago.error",
       config: { auth: false },
     },
     {
       method: "GET",
       path: "/pago/pendiente",
-      handler: "api::pago.pago.pendiente",
+      handler: "api::pago.mercadopago.pendiente",
       config: { auth: false },
     },
+
+    
   ],
 };
