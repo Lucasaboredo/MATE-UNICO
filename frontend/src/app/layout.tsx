@@ -12,6 +12,10 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Mate Único - Tienda Oficial",
   description: "Venta de mates artesanales y accesorios de calidad premium.",
+  // Agregamos esta propiedad para el favicon
+  icons: {
+    icon: "/logo-mate.svg",
+  },
 };
 
 export default function RootLayout({

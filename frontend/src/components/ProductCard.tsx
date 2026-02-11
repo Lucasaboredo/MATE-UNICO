@@ -14,12 +14,6 @@ interface Props {
 export default function ProductCard({ producto }: Props) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // --- LÓGICA DE ETIQUETAS (Luca) ---
-  // Más Vendido: Si tiene el flag 'destacado' o muchas opiniones (> 5)
-  const tieneMuchasReviews = (producto.opinions?.length || 0) > 5;
-  const esMasVendido = producto.destacado || tieneMuchasReviews;
-  // ----------------------------------
-
   const getImageUrl = (url: string) => {
     if (!url) return "/placeholder-mate.jpg";
     return url.startsWith("http") ? url : `${STRAPI_URL}${url}`;
@@ -45,7 +39,7 @@ export default function ProductCard({ producto }: Props) {
         group
       "
     >
-      {/* IMAGEN + ETIQUETAS */}
+      {/* IMAGEN */}
       <Link
         href={`/productos/${producto.slug}`}
         className="
@@ -56,15 +50,6 @@ export default function ProductCard({ producto }: Props) {
           block
         "
       >
-        {/* 🔥 ETIQUETAS FLOTANTES (LUCA) */}
-        <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5 items-start">
-          {esMasVendido && (
-            <span className="bg-[#1a1a1a] text-white text-[10px] font-bold px-2 py-1 rounded shadow-md uppercase tracking-wide">
-              🔥 Más Vendido
-            </span>
-          )}
-        </div>
-
         {currentImageUrl ? (
           <Image
             src={currentImageUrl}
