@@ -3,8 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Tilt_Warp, Inter } from "next/font/google";
-import { useEffect, useState, useRef } from "react"; // <--- Agregamos useRef
-import { usePathname, useRouter } from "next/navigation"; // <--- Agregamos useRouter
+import { useEffect, useState, useRef } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useCart } from "@/lib/cartContext";
 import { useAuth } from "@/lib/authContext";
 
@@ -15,7 +15,7 @@ const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600"] });
 export default function Header() {
   const [shadow, setShadow] = useState(false);
   const [animateCart, setAnimateCart] = useState(false);
-  
+
   // 👉 Estados para el menú desplegable
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -27,13 +27,10 @@ export default function Header() {
   const { items } = useCart();
 
   // 👤 usuario (Autenticación)
-  const { user, logout } = useAuth(); 
+  const { user, logout } = useAuth();
 
   // 🔢 total de productos
-  const cartCount = items.reduce(
-    (acc: number, item: any) => acc + item.cantidad,
-    0
-  );
+  const cartCount = items.reduce((acc: number, item: any) => acc + item.cantidad, 0);
 
   // Sombra al scrollear
   useEffect(() => {
@@ -83,7 +80,6 @@ export default function Header() {
       {/* 🔹 BARRA SUPERIOR VERDE */}
       <div className="w-full bg-[#5F6B58] h-[95px] flex items-center">
         <div className="mx-auto flex max-w-[1400px] w-full items-center justify-between px-10">
-          
           {/* LOGO */}
           <Link href="/" className="flex items-center gap-1 cursor-pointer">
             <Image
@@ -94,16 +90,29 @@ export default function Header() {
               className="w-[80px] h-auto mt-1"
               priority
             />
-            <span
-              className={`${tilt.className} text-[26px] text-[#FCFAF6] leading-none mt-[3px]`}
-            >
+            <span className={`${tilt.className} text-[26px] text-[#FCFAF6] leading-none mt-[3px]`}>
               Mate Único
             </span>
           </Link>
 
           {/* ICONOS */}
           <div className="flex flex-row items-center gap-12">
-            
+            {/* ❤️ FAVORITOS */}
+            <Link
+              href="/favoritos"
+              aria-label="Favoritos"
+              className="relative transition-all duration-200 hover:opacity-80 hover:scale-105"
+              title="Favoritos"
+            >
+              <Image
+                src="/icon-heart.svg"
+                alt="Favoritos"
+                width={56}
+                height={46}
+                className="w-[26px] h-auto"
+              />
+            </Link>
+
             {/* 🛒 CARRITO (Intacto) */}
             <Link
               href="/carrito"
@@ -146,13 +155,12 @@ export default function Header() {
                   onClick={() => setMenuOpen(!menuOpen)}
                   className="flex flex-col items-center gap-1 transition-transform hover:scale-105"
                 >
-                  {/* Círculo con Inicial (Usa tus colores invertidos para resaltar) */}
+                  {/* Círculo con Inicial */}
                   <div className="w-[32px] h-[32px] rounded-full bg-[#FCFAF6] text-[#5F6B58] flex items-center justify-center font-bold text-lg shadow-sm border border-[#E6E2DB]">
                     {user.username?.charAt(0).toUpperCase()}
                   </div>
-                  {/* Nombre pequeño abajo (Opcional, si quieres mantener la estética anterior) */}
                   <span className="text-[10px] text-[#FCFAF6] font-medium leading-none">
-                    {user.username.split(' ')[0]}
+                    {user.username.split(" ")[0]}
                   </span>
                 </button>
 
@@ -160,11 +168,9 @@ export default function Header() {
                 {menuOpen && (
                   <div className="absolute right-0 top-12 w-48 bg-white rounded-lg shadow-xl border border-gray-100 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50">
                     <div className="px-4 py-3 border-b border-gray-50 bg-gray-50/50">
-                      <p className="text-xs font-bold text-[#5F6B58] truncate">
-                        Hola, {user.username}
-                      </p>
+                      <p className="text-xs font-bold text-[#5F6B58] truncate">Hola, {user.username}</p>
                     </div>
-                    
+
                     <Link
                       href="/perfil"
                       onClick={() => setMenuOpen(false)}
@@ -172,7 +178,15 @@ export default function Header() {
                     >
                       Mi Perfil / Compras
                     </Link>
-                    
+
+                    <Link
+                      href="/favoritos"
+                      onClick={() => setMenuOpen(false)}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-[#FAF7F2] hover:text-[#5F6B58] transition-colors"
+                    >
+                      Mis Favoritos
+                    </Link>
+
                     <button
                       onClick={handleLogout}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
@@ -183,22 +197,15 @@ export default function Header() {
                 )}
               </div>
             ) : (
-              // ⚪ ESTADO INVITADO (Tu diseño original)
+              // ⚪ ESTADO INVITADO
               <Link
                 href="/login"
                 aria-label="Login"
                 className="transition-all duration-200 hover:opacity-80 hover:scale-105 flex flex-col items-center group"
               >
-                <Image
-                  src="/icon-user.svg"
-                  alt="Usuario"
-                  width={36}
-                  height={35}
-                  className="w-[22px] h-auto"
-                />
+                <Image src="/icon-user.svg" alt="Usuario" width={36} height={35} className="w-[22px] h-auto" />
               </Link>
             )}
-            
           </div>
         </div>
       </div>
@@ -219,13 +226,7 @@ export default function Header() {
               href={item.href}
               className="relative pb-1 transition-all duration-200 hover:font-semibold"
             >
-              <span
-                className={
-                  isActive(item.href) ? "font-semibold text-[#2F4A2D]" : ""
-                }
-              >
-                {item.label}
-              </span>
+              <span className={isActive(item.href) ? "font-semibold text-[#2F4A2D]" : ""}>{item.label}</span>
 
               {isActive(item.href) && (
                 <span className="absolute left-0 -bottom-[2px] w-full h-[2px] bg-[#2F4A2D]" />
