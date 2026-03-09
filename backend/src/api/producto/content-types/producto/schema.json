@@ -84,6 +84,13 @@
       "relation": "oneToMany",
       "target": "api::opinion.opinion",
       "mappedBy": "producto"
+    },
+    "en_promocion": {
+      "type": "boolean",
+      "default": false
+    },
+    "precio_oferta": {
+      "type": "decimal"
     }
   }
 }

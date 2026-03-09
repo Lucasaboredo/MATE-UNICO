@@ -6,10 +6,10 @@ export interface Imagen {
 export interface Variante {
   id: number;
   nombre: string;
-  precio?: number; // Precio específico de la variante (opcional)
+  precio?: number;
   stock: number;
-  codigo_color?: string; // Hex del color (ej: #000000)
-  indice_imagen?: number; // Qué foto mostrar al seleccionar
+  codigo_color?: string;
+  indice_imagen?: number;
 }
 
 export interface Opinion {
@@ -39,6 +39,8 @@ export interface Producto {
   variantes?: Variante[];
   categoria?: Categoria;
   opinions?: Opinion[];
-  // ✨ NUEVO CAMPO
-  permite_grabado: boolean; 
+  permite_grabado: boolean;
+  // ✨ CAMPOS DE PROMOCIÓN
+  en_promocion: boolean;
+  precio_oferta?: number;
 }

@@ -1,124 +1,76 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useState, useMemo } from "react";
 import type { CartItem } from "@/types/cart";
 
 interface CartContextType {
   items: CartItem[];
   addToCart: (item: CartItem) => void;
-  removeFromCart: (item: CartItem) => void; // Cambiado para recibir el objeto completo
-  updateQuantity: (item: CartItem, cantidad: number) => void; // Cambiado
+  removeFromCart: (item: CartItem) => void;
+  updateQuantity: (item: CartItem, cantidad: number) => void;
   clearCart: () => void;
   total: number;
-  totalItems: number;
 }
 
 const CartContext = createContext<CartContextType | null>(null);
-
-// Clave para guardar en el navegador
-const STORAGE_KEY = "mate-unico-cart-v3"; // Actualizamos versión para limpiar bugs viejos
+const STORAGE_KEY = "mate-unico-persist-v1";
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  /* CARGA INICIAL */
+  // Cargar datos del localStorage al iniciar
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) setItems(JSON.parse(stored));
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try { setItems(JSON.parse(saved)); } catch (e) { console.error("Error cargando carrito", e); }
+    }
+    setIsInitialized(true);
   }, []);
 
-  /* PERSISTENCIA */
+  // Guardar datos en localStorage ante cualquier cambio
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }, [items]);
+    if (isInitialized) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    }
+  }, [items, isInitialized]);
 
-  /* -----------------------------------------------------------
-     HELPER: Generar ID único para comparación
-     Esto soluciona el bug: Diferencia items por grabado
-  ----------------------------------------------------------- */
-  const getSignature = (item: CartItem) => {
-    return `${item.productId}-${item.variantId || 'null'}-${item.grabado ? 'con' : 'sin'}-${item.textoGrabado || ''}`;
-  };
-
-  /* ACCIONES */
   const addToCart = (newItem: CartItem) => {
     setItems((prev) => {
-      const signatureNew = getSignature(newItem);
-      
-      const existingIndex = prev.findIndex(p => getSignature(p) === signatureNew);
-
-      if (existingIndex >= 0) {
-        // Si existe EXACTAMENTE igual, sumamos cantidad
-        const updatedItems = [...prev];
-        const existingItem = updatedItems[existingIndex];
-        
-        updatedItems[existingIndex] = {
-          ...existingItem,
-          cantidad: Math.min(existingItem.cantidad + newItem.cantidad, existingItem.stock),
-        };
-        return updatedItems;
+      const existing = prev.find(i => i.productId === newItem.productId && i.variantId === newItem.variantId);
+      if (existing) {
+        return prev.map(i => i.productId === newItem.productId && i.variantId === newItem.variantId 
+          ? { ...i, cantidad: i.cantidad + newItem.cantidad } : i);
       }
-
-      // Si es diferente (ej: tiene grabado), se agrega como nuevo
       return [...prev, newItem];
     });
   };
 
-  const updateQuantity = (targetItem: CartItem, cantidad: number) => {
-    const signatureTarget = getSignature(targetItem);
-
-    setItems((prev) =>
-      prev.map((item) => {
-        if (getSignature(item) === signatureTarget) {
-          return {
-            ...item,
-            cantidad: Math.min(Math.max(cantidad, 1), item.stock),
-          };
-        }
-        return item;
-      })
-    );
+  const updateQuantity = (target: CartItem, n: number) => {
+    setItems(prev => prev.map(i => i.productId === target.productId && i.variantId === target.variantId 
+      ? { ...i, cantidad: Math.max(1, n) } : i));
   };
 
-  const removeFromCart = (targetItem: CartItem) => {
-    const signatureTarget = getSignature(targetItem);
-    setItems((prev) => prev.filter((p) => getSignature(p) !== signatureTarget));
+  const removeFromCart = (target: CartItem) => {
+    setItems(prev => prev.filter(i => !(i.productId === target.productId && i.variantId === target.variantId)));
   };
 
-  const clearCart = () => setItems([]);
+  const clearCart = () => {
+    setItems([]);
+    localStorage.removeItem(STORAGE_KEY);
+  };
 
-  /* DERIVADOS */
-  const total = useMemo(
-    () => items.reduce((acc, item) => acc + item.precioUnitario * item.cantidad, 0),
-    [items]
-  );
-
-  const totalItems = useMemo(
-    () => items.reduce((acc, item) => acc + item.cantidad, 0),
-    [items]
-  );
+  const total = useMemo(() => items.reduce((acc, i) => acc + (i.precioUnitario * i.cantidad), 0), [items]);
 
   return (
-    <CartContext.Provider
-      value={{
-        items,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        clearCart,
-        total,
-        totalItems,
-      }}
-    >
+    <CartContext.Provider value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, total }}>
       {children}
     </CartContext.Provider>
   );
 }
 
-export function useCart() {
-  const ctx = useContext(CartContext);
-  if (!ctx) {
-    throw new Error("useCart must be used inside CartProvider");
-  }
-  return ctx;
-}
+export const useCart = () => {
+  const c = useContext(CartContext);
+  if (!c) throw new Error("useCart debe usarse dentro de un CartProvider");
+  return c;
+};

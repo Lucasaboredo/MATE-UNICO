@@ -1,104 +1,51 @@
 "use client";
 
-import {
-    createContext,
-    useContext,
-    useState,
-    useEffect,
-    ReactNode,
-} from "react";
-import { setToken, getToken, removeToken } from "./auth";
-
-export interface User {
-    id: number;
-    username: string;
-    email: string;
-    provider?: string;
-    confirmed?: boolean;
-    blocked?: boolean;
-    
-    // ✅ CORREGIDO: Quitamos el '?' para que sean obligatorios
-    createdAt: string;
-    updatedAt: string;
-
-    // Identidad
-    nombre?: string;
-    apellido?: string;
-    telefono?: string;
-
-    // Facturación (Personal)
-    direccion_facturacion?: string;
-    numero_facturacion?: string;
-    ciudad_facturacion?: string;
-    provincia_facturacion?: string;
-    cp_facturacion?: string;
-
-    // Envío (Checkout)
-    direccion?: string;
-    numero?: string;
-    ciudad?: string;
-    provincia?: string;
-    codigoPostal?: string;
-}
+import { createContext, useContext, useEffect, useState } from "react";
+import { getProfile } from "@/lib/auth";
 
 interface AuthContextType {
-    user: User | null;
-    token: string | null;
-    loading: boolean;
-    login: (token: string, userData: User) => void;
-    logout: () => void;
+  user: any;
+  loading: boolean;
+  login: (jwt: string, user: any) => void; // Cambiado para aceptar los datos directamente
+  logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | null>(null);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [token, setTokenState] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const initAuth = () => {
-            const storedToken = getToken();
-            const storedUser = localStorage.getItem("strapi_user");
-
-            if (storedToken && storedUser) {
-                setTokenState(storedToken);
-                try {
-                    setUser(JSON.parse(storedUser));
-                } catch (e) {
-                    console.error("Error parsing user data", e);
-                }
-            }
-            setLoading(false);
-        };
-        initAuth();
-    }, []);
-
-    const login = (newToken: string, userData: User) => {
-        setToken(newToken);
-        localStorage.setItem("strapi_user", JSON.stringify(userData));
-        setTokenState(newToken);
-        setUser(userData);
+  useEffect(() => {
+    const initAuth = async () => {
+      const profile = await getProfile();
+      setUser(profile);
+      setLoading(false);
     };
+    initAuth();
+  }, []);
 
-    const logout = () => {
-        removeToken();
-        localStorage.removeItem("strapi_user");
-        setTokenState(null);
-        setUser(null);
-    };
+  // Esta función ahora recibe lo que tu página de Login/Register ya le está enviando
+  const login = (jwt: string, userData: any) => {
+    localStorage.setItem("jwt", jwt);
+    setUser(userData);
+  };
 
-    return (
-        <AuthContext.Provider value={{ user, token, loading, login, logout }}>
-            {children}
-        </AuthContext.Provider>
-    );
-};
+  const logout = () => {
+    localStorage.removeItem("jwt");
+    setUser(null);
+    window.location.href = "/login";
+  };
 
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error("useAuth debe usarse dentro de un AuthProvider");
-    }
-    return context;
-};
+  return (
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth debe usarse dentro de AuthProvider");
+  return context;
+}

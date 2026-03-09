@@ -139,13 +139,24 @@ export default function ProductoDetalleView({ producto, relacionados }: Props) {
     if (cantidad < currentStock) setCantidad((prev) => prev + 1);
   };
 
-  // --- 7. AGREGAR AL CARRITO ---
+// --- 7. AGREGAR AL CARRITO ---
   const handleAddToCart = () => {
     try {
       // ⛔ Si no hay stock, no dejamos
       if (isOutOfStock) return;
 
-      let precioFinal = selectedVariant?.precio ?? producto.precioBase;
+      // ✨ LÓGICA DE PRECIO CORREGIDA:
+      // Prioridad 1: Precio de Oferta (si está en promoción)
+      // Prioridad 2: Precio de Variante seleccionada
+      // Prioridad 3: Precio Base del producto
+      let precioFinal = producto.precioBase;
+
+      if (producto.en_promocion && producto.precio_oferta) {
+        precioFinal = producto.precio_oferta;
+      } else if (selectedVariant?.precio) {
+        precioFinal = selectedVariant.precio;
+      }
+
       let nombreParaCarrito = selectedVariant
         ? `${producto.nombre} - ${selectedVariant.nombre}`
         : producto.nombre;
@@ -166,7 +177,7 @@ export default function ProductoDetalleView({ producto, relacionados }: Props) {
         variantId: selectedVariant?.id,
         nombre: nombreParaCarrito,
         slug: producto.slug,
-        precioUnitario: precioFinal,
+        precioUnitario: precioFinal, // Ahora lleva el precio de promoción aplicado
         cantidad,
         imagenUrl: selectedImage,
         stock: selectedVariant?.stock ?? 999999,
@@ -436,11 +447,30 @@ export default function ProductoDetalleView({ producto, relacionados }: Props) {
               </button>
             </div>
 
-            {/* PRECIO */}
-            <p className="text-3xl font-medium text-[#1a1a1a] mb-6 animate-in fade-in duration-300">
-              {formatPrice((selectedVariant?.precio || producto.precioBase) + (conGrabado ? COSTO_GRABADO : 0))}
-            </p>
+            {/* PRECIO DINÁMICO CON PROMOCIÓN */}
+            <div className="mb-6 animate-in fade-in duration-300">
+              {producto.en_promocion && producto.precio_oferta ? (
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-3">
+                    <p className="text-4xl font-bold text-[#2F4A2D]">
+                      {formatPrice((producto.precio_oferta) + (conGrabado ? COSTO_GRABADO : 0))}
+                    </p>
+                    <p className="text-xl text-gray-400 line-through decoration-red-500 opacity-70">
+                      {formatPrice((producto.precioBase) + (conGrabado ? COSTO_GRABADO : 0))}
+                    </p>
+                  </div>
+                  <span className="text-sm font-bold text-red-600 uppercase tracking-tight">
+                    ¡Oferta exclusiva!
+                  </span>
+                </div>
+              ) : (
+                <p className="text-3xl font-medium text-[#1a1a1a]">
+                  {formatPrice((selectedVariant?.precio || producto.precioBase) + (conGrabado ? COSTO_GRABADO : 0))}
+                </p>
+              )}
+            </div>
 
+            {/* DESCRIPCIÓN (Se mantiene igual) */}
             <div className="text-gray-600 text-sm leading-relaxed mb-6 space-y-4 font-normal">
               <p>{producto.descripcion}</p>
             </div>

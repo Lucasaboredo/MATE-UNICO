@@ -37,7 +37,9 @@ export default function ProductosView({ productos }: { productos: any[] }) {
   const [combo, setCombo] = useState<string | null>(null);
   const [color, setColor] = useState<string | null>(null);
   const [ordenPrecio, setOrdenPrecio] = useState<OrdenPrecio>(null);
-  const [busqueda, setBusqueda] = useState<string>(""); // Estado para la búsqueda
+  const [busqueda, setBusqueda] = useState<string>("");
+  // ✨ NUEVO ESTADO PARA PROMOCIONES
+  const [soloPromociones, setSoloPromociones] = useState<boolean>(false);
 
   // ================== FILTRADO + ORDEN ==================
   const productosProcesados = useMemo(() => {
@@ -53,22 +55,32 @@ export default function ProductosView({ productos }: { productos: any[] }) {
       // 3. Filtro por Combo
       if (combo && p.combo !== combo) return false;
 
-      // 4. Filtro por Color (Asumiendo que existe p.color o verificando lógica de variantes si fuera necesario)
+      // 4. Filtro por Color
       if (color && p.color !== color) return false;
+
+      // ✨ 5. FILTRO DE PROMOCIONES
+      if (soloPromociones && !p.en_promocion) return false;
 
       return true;
     });
 
-    // Ordenamiento
+    // Ordenamiento dinámico (considerando precio de oferta si existe)
     if (ordenPrecio === "asc") {
-      resultado = [...resultado].sort((a, b) => a.precioBase - b.precioBase);
+      resultado = [...resultado].sort((a, b) => {
+        const precioA = a.en_promocion ? a.precio_oferta : a.precioBase;
+        const precioB = b.en_promocion ? b.precio_oferta : b.precioBase;
+        return precioA - precioB;
+      });
     } else if (ordenPrecio === "desc") {
-      resultado = [...resultado].sort((a, b) => b.precioBase - a.precioBase);
+      resultado = [...resultado].sort((a, b) => {
+        const precioA = a.en_promocion ? a.precio_oferta : a.precioBase;
+        const precioB = b.en_promocion ? b.precio_oferta : b.precioBase;
+        return precioB - precioA;
+      });
     }
-    // Si es null, se mantiene el orden por defecto (como vienen de Strapi)
 
     return resultado;
-  }, [productos, categoria, combo, color, ordenPrecio, busqueda]);
+  }, [productos, categoria, combo, color, ordenPrecio, busqueda, soloPromociones]);
 
   // Función para resetear todos los filtros
   const limpiarFiltros = () => {
@@ -77,6 +89,7 @@ export default function ProductosView({ productos }: { productos: any[] }) {
     setColor(null);
     setBusqueda("");
     setOrdenPrecio(null);
+    setSoloPromociones(false);
   };
 
   return (
@@ -87,7 +100,6 @@ export default function ProductosView({ productos }: { productos: any[] }) {
         <aside className="w-full md:w-64 flex-shrink-0">
           <div className="sticky top-8 space-y-8">
             
-            {/* Encabezado Sidebar */}
             <div>
               <h2 className="text-3xl font-bold text-[#5C5149] mb-4">Productos</h2>
               <button 
@@ -98,6 +110,25 @@ export default function ProductosView({ productos }: { productos: any[] }) {
               </button>
             </div>
 
+            {/* ✨ SWITCH DE PROMOCIONES (Diseño Destacado) */}
+            <div className="p-4 bg-white rounded-xl shadow-sm border border-[#E0DCD3]">
+              <label className="flex items-center justify-between cursor-pointer group">
+                <span className="text-sm font-bold text-[#5C5149] group-hover:text-red-600 transition-colors">
+                  Solo Ofertas 🔥
+                </span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={soloPromociones}
+                    onChange={(e) => setSoloPromociones(e.target.checked)}
+                  />
+                  <div className={`block w-10 h-6 rounded-full transition-colors ${soloPromociones ? 'bg-red-500' : 'bg-gray-300'}`}></div>
+                  <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${soloPromociones ? 'translate-x-4' : ''}`}></div>
+                </div>
+              </label>
+            </div>
+
             {/* --- BUSCADOR --- */}
             <div className="relative">
               <input 
@@ -105,9 +136,8 @@ export default function ProductosView({ productos }: { productos: any[] }) {
                 placeholder="Buscar mate..."
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
-                className="w-full bg-white border border-[#E0DCD3] rounded-lg px-4 py-3 pl-10 text-sm outline-none focus:ring-2 focus:ring-[#5C5149]/20 transition-all placeholder:text-[#5C5149]/40"
+                className="w-full bg-white border border-[#E0DCD3] rounded-lg px-4 py-3 pl-10 text-sm outline-none focus:ring-2 focus:ring-[#5C5149]/20 transition-all"
               />
-              {/* Icono Lupa SVG */}
               <svg 
                 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5C5149]/50" 
                 fill="none" viewBox="0 0 24 24" stroke="currentColor"
@@ -196,38 +226,28 @@ export default function ProductosView({ productos }: { productos: any[] }) {
 
         {/* ================= CONTENIDO PRINCIPAL ================= */}
         <div className="flex-1">
-
-          {/* BARRA SUPERIOR (Resultados + Ordenar) */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
             <p className="text-[#5C5149]/60 text-sm">
               Mostrando <span className="font-bold text-[#5C5149]">{productosProcesados.length}</span> productos
             </p>
 
             <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-[#5C5149] whitespace-nowrap">
-                Ordenar por:
-              </span>
+              <span className="text-sm font-medium text-[#5C5149] whitespace-nowrap">Ordenar por:</span>
               <div className="relative">
                 <select
                   value={ordenPrecio ?? ""}
-                  onChange={(e) =>
-                    setOrdenPrecio(
-                      e.target.value === "" ? null : (e.target.value as OrdenPrecio)
-                    )
-                  }
-                  className="appearance-none bg-white border border-[#E0DCD3] rounded-lg pl-4 pr-10 py-2 text-sm text-[#5C5149] focus:outline-none focus:ring-2 focus:ring-[#5C5149]/20 cursor-pointer shadow-sm hover:border-[#5C5149]/40 transition-colors"
+                  onChange={(e) => setOrdenPrecio(e.target.value === "" ? null : (e.target.value as OrdenPrecio))}
+                  className="appearance-none bg-white border border-[#E0DCD3] rounded-lg pl-4 pr-10 py-2 text-sm text-[#5C5149] focus:outline-none focus:ring-2 focus:ring-[#5C5149]/20 cursor-pointer shadow-sm"
                 >
                   <option value="">Por defecto</option>
                   <option value="asc">Precio: Menor a mayor</option>
                   <option value="desc">Precio: Mayor a menor</option>
                 </select>
-                {/* Icono Flecha Select */}
                 <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5C5149]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
               </div>
             </div>
           </div>
 
-          {/* GRID DE PRODUCTOS */}
           {productosProcesados.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
               {productosProcesados.map((p: any) => (
@@ -236,13 +256,12 @@ export default function ProductosView({ productos }: { productos: any[] }) {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-20 bg-white/50 rounded-xl border border-dashed border-[#E0DCD3]">
-              <p className="text-lg font-medium text-[#5C5149] mb-2">No encontramos mates con esa búsqueda.</p>
-              <p className="text-[#5C5149]/60 text-sm">Prueba ajustando los filtros o buscando otra cosa.</p>
+              <p className="text-lg font-medium text-[#5C5149] mb-2">No encontramos mates con esos filtros.</p>
               <button 
                 onClick={limpiarFiltros} 
                 className="mt-6 px-6 py-2 bg-[#5C5149] text-white rounded-lg hover:bg-[#4a413a] transition-colors text-sm font-medium"
               >
-                Ver todos los productos
+                Limpiar todos los filtros
               </button>
             </div>
           )}

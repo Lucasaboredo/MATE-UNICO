@@ -1,54 +1,21 @@
-// src/app/page.tsx
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { fetchFromStrapi } from "@/lib/api";
 import HeroCarousel from "@/components/HeroCarousel";
 import ProductCard from "@/components/ProductCard";
 
 const FAVORITES_KEY = "mate-unico:favorites";
 
-function buildInFilterQuery(paramBase: string, values: string[]) {
-  // Ej: filters[slug][$in][0]=a&filters[slug][$in][1]=b
-  return values
-    .map((v, i) => `${paramBase}[${i}]=${encodeURIComponent(v)}`)
-    .join("&");
-}
-
 export default function Home() {
-  // HERO
   const [slides, setSlides] = useState<any[]>([]);
   const [loadingHero, setLoadingHero] = useState(true);
-
-  // DESTACADOS
   const [productosDestacados, setProductosDestacados] = useState<any[]>([]);
   const [loadingDestacados, setLoadingDestacados] = useState(true);
-
-  // PROMOCIONES
   const [promociones, setPromociones] = useState<any[]>([]);
   const [loadingPromos, setLoadingPromos] = useState(true);
 
-  // FAVORITOS (slugs guardados)
-  const [favoriteSlugs, setFavoriteSlugs] = useState<string[]>([]);
-  const [favoritos, setFavoritos] = useState<any[]>([]);
-  const [loadingFavs, setLoadingFavs] = useState(true);
-
-  // 1) Cargar favoritos desde localStorage
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(FAVORITES_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      const slugs = Array.isArray(parsed) ? parsed.filter(Boolean) : [];
-      setFavoriteSlugs(slugs);
-    } catch {
-      setFavoriteSlugs([]);
-    } finally {
-      setLoadingFavs(false);
-    }
-  }, []);
-
-  // 2) Cargar Hero + Destacados + Promos (Strapi)
   useEffect(() => {
     async function load() {
       // HERO
@@ -57,8 +24,7 @@ export default function Home() {
         const homeRes = await fetchFromStrapi("/api/homes?populate[imagen_hero]=true");
         setSlides(homeRes.data || []);
       } catch (e) {
-        console.error("⚠️ Error cargando el Hero:", e);
-        setSlides([]);
+        console.error("⚠️ Error Hero:", e);
       } finally {
         setLoadingHero(false);
       }
@@ -71,122 +37,106 @@ export default function Home() {
         );
         setProductosDestacados(prodRes.data || []);
       } catch (e) {
-        console.error("⚠️ Error cargando productos destacados:", e);
-        setProductosDestacados([]);
+        console.error("⚠️ Error destacados:", e);
       } finally {
         setLoadingDestacados(false);
       }
 
-      // PROMOCIONES / OFERTAS
-      // Soporta dos escenarios típicos:
-      // - campo "descuento" (number) > 0
-      // - campo "precioOferta" (number) not null
+      // PROMOCIONES
       setLoadingPromos(true);
       try {
         const promosRes = await fetchFromStrapi(
-          "/api/productos?" +
-            [
-              "populate=imagen",
-              "populate=variantes",
-              // OR: descuento > 0  ||  precioOferta not null
-              "filters[$or][0][descuento][$gt]=0",
-              "filters[$or][1][precioOferta][$notNull]=true",
-            ].join("&")
+          "/api/productos?filters[en_promocion][$eq]=true&populate=imagen&populate=variantes"
         );
         setPromociones(promosRes.data || []);
       } catch (e) {
-        console.error("⚠️ Error cargando promociones:", e);
-        setPromociones([]);
+        console.error("⚠️ Error promociones:", e);
       } finally {
         setLoadingPromos(false);
       }
     }
-
     load();
   }, []);
 
-  // 3) Cargar productos favoritos (si hay slugs)
-  useEffect(() => {
-    async function loadFavs() {
-      if (!favoriteSlugs || favoriteSlugs.length === 0) {
-        setFavoritos([]);
-        return;
-      }
-
-      try {
-        const inQuery = buildInFilterQuery("filters[slug][$in]", favoriteSlugs);
-        const url = `/api/productos?${inQuery}&populate=imagen&populate=variantes`;
-        const res = await fetchFromStrapi(url);
-        setFavoritos(res.data || []);
-      } catch (e) {
-        console.error("⚠️ Error cargando favoritos:", e);
-        setFavoritos([]);
-      }
-    }
-
-    loadFavs();
-  }, [favoriteSlugs]);
-
-  const hasFavs = useMemo(() => favoritos.length > 0, [favoritos]);
-
   return (
-    <div className="w-full flex flex-col items-center">
-      {/* ================= HERO ================= */}
+    <div className="w-full flex flex-col items-center bg-[#FCFAF6]">
+      {/* HERO SECTION */}
       {!loadingHero && slides.length > 0 ? (
         <HeroCarousel slides={slides} />
       ) : (
-        <div className="w-full h-[400px] bg-gray-200 flex flex-col items-center justify-center text-gray-500 gap-2">
-          <p className="text-xl font-bold">Bienvenido a Mate Único</p>
-          <p className="text-sm">
-            (Carga imágenes en la colección &apos;Homes&apos; de Strapi para ver el banner)
-          </p>
+        <div className="w-full h-[400px] bg-[#E5E0D8] flex items-center justify-center text-[#5C5149]">
+          <p className="text-xl font-medium tracking-widest uppercase">Mate Único</p>
         </div>
       )}
 
-      {/* ================= PROMOCIONES / OFERTAS ================= */}
-      <section className="w-full bg-[#FAF7F2] py-16">
-        <div className="mx-auto max-w-[1200px] px-4 text-center">
-          <h2 className="text-3xl font-bold text-[#2F4A2D] mb-10">Promociones 💸</h2>
+      {/* ================= SECCIÓN PROMOCIONES 🔥 ================= */}
+      <section className="w-full py-20 bg-[#FAF7F2] border-b border-[#E5E0D8]">
+        <div className="mx-auto max-w-[1200px] px-6">
+          <div className="text-center mb-12 flex flex-col items-center">
+            <h2 className="text-4xl md:text-5xl font-black text-[#2F4A2D] tracking-tighter mb-4 uppercase text-center">
+              Promociones 🔥
+            </h2>
+            <div className="h-1 w-20 bg-[#2F4A2D] rounded-full mb-6"></div>
+            <p className="text-[#5C5149] font-medium text-sm max-w-md text-center">
+              Aprovechá nuestros precios exclusivos por tiempo limitado.
+            </p>
+          </div>
 
           {loadingPromos ? (
-            <p className="text-gray-500 italic">Cargando promociones...</p>
+            <div className="flex justify-center py-10">
+              <div className="animate-pulse text-[#2F4A2D] font-bold text-center">Buscando ofertas...</div>
+            </div>
           ) : promociones.length > 0 ? (
-            <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 justify-items-center">
+            /* ✨ AJUSTE: Mismo grid y centrado que Destacados */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 justify-items-center">
               {promociones.map((prod: any) => (
-                <ProductCard key={`promo-${prod.id}`} producto={prod} />
+                <div key={`promo-${prod.id}`} className="w-full max-w-[280px] flex justify-center">
+                  <ProductCard producto={prod} />
+                </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 italic">No hay promociones por ahora.</p>
+            <div className="max-w-md mx-auto py-10 bg-white/50 rounded-3xl border-2 border-dashed border-[#E5E0D8] text-center">
+              <p className="text-[#5C5149] italic text-sm font-medium text-center">Próximamente nuevas promociones...</p>
+            </div>
           )}
         </div>
       </section>
 
-     
-
-      {/* ================= PRODUCTOS DESTACADOS ================= */}
-      <section className="w-full bg-white py-16">
-        <div className="mx-auto max-w-[1200px] px-4 text-center">
-          <h2 className="text-3xl font-bold text-[#2F4A2D] mb-10">Productos Destacados 🔥</h2>
+      {/* ================= SECCIÓN DESTACADOS ✨ ================= */}
+      <section className="w-full py-20 bg-white">
+        <div className="mx-auto max-w-[1200px] px-6">
+          <div className="text-center mb-12 flex flex-col items-center">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#1a1a1a] mb-4 uppercase tracking-tight text-center">
+              Nuestros Destacados
+            </h2>
+            <div className="h-1 w-12 bg-[#4A4A40] mb-6"></div>
+            <p className="text-gray-500 max-w-lg text-sm leading-relaxed text-center">
+              La calidad que nos define en cada pieza.
+            </p>
+          </div>
 
           {loadingDestacados ? (
-            <p className="text-gray-500 italic">Cargando destacados...</p>
+            <div className="text-center py-10 text-gray-400 animate-pulse">Cargando destacados...</div>
           ) : productosDestacados.length > 0 ? (
-            <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 justify-items-center">
+            /* ✨ grid-cols-4 asegura que los 4 productos estén alineados en la misma línea */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 justify-items-center">
               {productosDestacados.map((prod: any) => (
-                <ProductCard key={`dest-${prod.id}`} producto={prod} />
+                <div key={`dest-${prod.id}`} className="w-full max-w-[280px] flex justify-center">
+                  <ProductCard producto={prod} />
+                </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 italic">No se encontraron productos destacados.</p>
+            <p className="text-center text-gray-400 italic">No hay productos destacados hoy.</p>
           )}
 
-          <div className="mt-10">
+          <div className="mt-16 text-center">
             <Link
               href="/productos"
-              className="inline-flex items-center justify-center rounded-full border border-[#8D868D] px-8 py-2 text-sm font-medium text-[#333] hover:bg-[#5F6B58] transition"
+              className="group relative inline-flex items-center justify-center px-10 py-4 font-bold text-white transition-all duration-300 bg-[#4A4A40] rounded-full hover:bg-[#2F4A2D] shadow-lg active:scale-95"
             >
-              Ver todos los productos
+              <span className="text-xs uppercase tracking-[0.2em]">Ver Toda la Tienda</span>
             </Link>
           </div>
         </div>

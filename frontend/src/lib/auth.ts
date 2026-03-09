@@ -1,20 +1,20 @@
-// Helper para manejar el Token JWT en el navegador
+import { fetchFromStrapi } from "./api";
 
-export const setToken = (token: string) => {
-    if (typeof window !== "undefined") {
-        localStorage.setItem("strapi_jwt", token);
-    }
-};
+export async function getProfile() {
+  const token = typeof window !== "undefined" ? localStorage.getItem("jwt") : null;
+  if (!token) return null;
 
-export const getToken = () => {
-    if (typeof window !== "undefined") {
-        return localStorage.getItem("strapi_jwt");
-    }
+  try {
+    // Usamos tu fetchFromStrapi con Cache Buster
+    return await fetchFromStrapi("/users/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch (error) {
     return null;
-};
+  }
+}
 
-export const removeToken = () => {
-    if (typeof window !== "undefined") {
-        localStorage.removeItem("strapi_jwt");
-    }
-};
+export function getToken() {
+  if (typeof window !== "undefined") return localStorage.getItem("jwt");
+  return null;
+}

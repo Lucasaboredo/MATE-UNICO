@@ -710,6 +710,7 @@ export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     descripcion: Schema.Attribute.String;
     destacado: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    en_promocion: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     imagen: Schema.Attribute.Media<
       'images' | 'files' | 'videos' | 'audios',
       true
@@ -725,6 +726,7 @@ export interface ApiProductoProducto extends Struct.CollectionTypeSchema {
     opinions: Schema.Attribute.Relation<'oneToMany', 'api::opinion.opinion'>;
     permite_grabado: Schema.Attribute.Boolean &
       Schema.Attribute.DefaultTo<false>;
+    precio_oferta: Schema.Attribute.Decimal;
     precioBase: Schema.Attribute.Decimal & Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
     slug: Schema.Attribute.UID<'nombre'>;
