@@ -49,10 +49,32 @@ export default {
         // 1) stock + orden pagada
         await procesarCompraExitosa(orderId, String(paymentId));
 
-        // 2) email (con logs del resultado)
+        // 2) MARCAR CUPÓN COMO USADO
+        try {
+          // ✅ ACÁ ESTÁ EL CAMBIO: Le agregamos 'as any' a la orden
+          const orden = await strapi.entityService.findOne('api::orden.orden', orderId) as any;
+          if (orden && orden.codigo_cupon) {
+            const cupones = await strapi.entityService.findMany('api::cupon.cupon', {
+              filters: { codigo: orden.codigo_cupon }
+            });
+
+            if (cupones && cupones.length > 0) {
+              const cuponUsado = cupones[0];
+              await strapi.entityService.update('api::cupon.cupon', cuponUsado.id, {
+                data: {
+                  usos_realizados: Number(cuponUsado.usos_realizados || 0) + 1
+                }
+              });
+              console.log(`✅ Cupón ${orden.codigo_cupon} sumó un uso.`);
+            }
+          }
+        } catch (err) {
+          console.error("❌ Error al sumar uso del cupón:", err);
+        }
+
+        // 3) email (con logs del resultado)
         try {
           const resEmail = await enviarEmailConfirmacionOrden(orderId, String(paymentId));
-
           console.log("📧 [EMAIL] Resultado:", resEmail);
         } catch (e: any) {
           console.error("❌ [EMAIL] Falló enviarEmailConfirmacionOrden:", e?.message || e);
@@ -73,7 +95,6 @@ export default {
     }
   },
 
-  // ✅ exito SOLO redirige (sin tocar orden / email)
   async exito(ctx: any) {
     try {
       const query = ctx.request.query;
@@ -113,7 +134,3 @@ export default {
     return ctx.redirect(`${getFrontendUrl()}/checkout/pendiente`);
   },
 };
-
-
-
-

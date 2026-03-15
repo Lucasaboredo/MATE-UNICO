@@ -1,63 +1,69 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, Suspense, useState, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/authContext";
-import { fetchFromStrapi } from "@/lib/api";
 
-export default function GoogleRedirect() {
-    const router = useRouter();
+function GoogleRedirectContent() {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const { login } = useAuth();
-    const [error, setError] = useState("");
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const hasFetched = useRef(false);
 
     useEffect(() => {
-        const authenticate = async () => {
-            // Strapi devuelve el access_token en la URL
-            const accessToken = searchParams.get("access_token");
+        if (hasFetched.current) return;
 
-            if (!accessToken) {
-                setError("No se recibió token de Google.");
-                return;
-            }
+        // Solo extraemos el access_token limpio, ignorando el resto de parámetros que ensucian la petición
+        const accessToken = searchParams.get("access_token");
 
-            try {
-                // Intercambiamos el access_token de Google por credenciales de Strapi
-                // Nota: Strapi maneja esto en /api/auth/google/callback con los params
-                const res = await fetch(`http://localhost:1337/api/auth/google/callback?access_token=${accessToken}`);
-                const data = await res.json();
+        if (accessToken) {
+            hasFetched.current = true;
 
-                if (data.jwt && data.user) {
-                    // ¡Login Exitoso! Guardamos en contexto
-                    login(data.jwt, data.user);
-                } else {
-                    setError("Error al autenticar con el servidor.");
-                }
-            } catch (err) {
-                console.error(err);
-                setError("Ocurrió un error de conexión.");
-            }
-        };
-
-        authenticate();
-    }, [searchParams, login]);
-
-    if (error) {
-        return (
-            <div className="h-screen flex flex-col items-center justify-center text-red-600">
-                <h2 className="text-xl font-bold">Error de Autenticación</h2>
-                <p>{error}</p>
-                <button onClick={() => router.push('/login')} className="mt-4 underline">Volver al Login</button>
-            </div>
-        );
-    }
+            // Le mandamos SOLO el access_token a Strapi
+            fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL || "http://127.0.0.1:1337"}/api/auth/google/callback?access_token=${accessToken}`)
+                .then((res) => {
+                    if (!res.ok) throw new Error("No se pudo autenticar con Google");
+                    return res.json();
+                })
+                .then((data) => {
+                    if (data.jwt && data.user) {
+                        login(data.jwt, data.user);
+                        router.push("/perfil");
+                    } else {
+                        throw new Error("Respuesta inválida de Strapi");
+                    }
+                })
+                .catch((err) => {
+                    console.error("Error en Google Auth:", err);
+                    setErrorMsg("Hubo un error al iniciar sesión. Redirigiendo al login...");
+                    setTimeout(() => router.push("/login"), 3000);
+                });
+        } else {
+            router.push("/login");
+        }
+    }, [searchParams, router, login]);
 
     return (
-        <div className="h-screen flex items-center justify-center bg-[#FCFAF6]">
-            <div className="animate-pulse flex flex-col items-center">
-                <div className="w-12 h-12 border-4 border-[#5F6B58] border-t-transparent rounded-full animate-spin mb-4"></div>
-                <p className="text-[#5F6B58] font-medium">Autenticando...</p>
-            </div>
+        <div className="flex min-h-screen flex-col items-center justify-center bg-[#F9F7F2] px-4 text-center">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#2F4A2D] border-t-transparent mb-4"></div>
+            <p className="text-lg font-bold text-[#2F4A2D]">
+                {errorMsg ? errorMsg : "Validando cuenta de Google..."}
+            </p>
         </div>
+    );
+}
+
+export default function GoogleRedirectPage() {
+    return (
+        <Suspense
+            fallback={
+                <div className="flex min-h-screen items-center justify-center bg-[#F9F7F2]">
+                    <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#2F4A2D] border-t-transparent"></div>
+                </div>
+            }
+        >
+            <GoogleRedirectContent />
+        </Suspense>
     );
 }

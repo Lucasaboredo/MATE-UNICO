@@ -49,7 +49,9 @@
       "relation": "manyToOne",
       "target": "plugin::users-permissions.user",
       "inversedBy": "ordens"
+    },
+    "codigo_cupon": {
+      "type": "string"
     }
   }
 }
-

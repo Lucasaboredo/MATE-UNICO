@@ -11,9 +11,7 @@ import { useAuth } from "@/lib/authContext";
 
 /* ================= STRAPI HOST ================= */
 const STRAPI_HOST =
-  process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
-  process.env.NEXT_PUBLIC_STRAPI_URL ||
-  "http://localhost:1337";
+  process.env.NEXT_PUBLIC_STRAPI_URL || "http://127.0.0.1:1337";
 
 function toAbsoluteUrl(url?: string | null) {
   if (!url) return "";
@@ -37,7 +35,7 @@ export default function CheckoutPagoPage() {
   const router = useRouter();
   const { items, clearCart } = useCart();
   const { buyer, shipping } = useCheckout();
-  const { user } = useAuth(); 
+  const { user } = useAuth();
 
   const [envioPrecio, setEnvioPrecio] = useState(0);
   const [envioDemora, setEnvioDemora] = useState<string | null>(null);
@@ -47,7 +45,7 @@ export default function CheckoutPagoPage() {
   const [aplicandoCupon, setAplicandoCupon] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   const cuponAplicado = descuento > 0;
 
   useEffect(() => {
@@ -78,28 +76,42 @@ export default function CheckoutPagoPage() {
 
   const totalConDescuentoProductos = Math.max(subtotal - descuento, 0);
   const totalPagar = totalConDescuentoProductos + envioPrecio;
+  const precioOriginalTotal = subtotal + envioPrecio;
+
   const factor = descuento > 0 && subtotal > 0 ? descuento / subtotal : 0;
 
   async function aplicarCupon() {
     if (!codigoCupon) return;
     setAplicandoCupon(true);
+    setMsg(null);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cupones/validar`, {
+      const res = await fetch(`${STRAPI_HOST}/api/cupones/validar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codigo: codigoCupon, total: subtotal }),
+        body: JSON.stringify({
+          codigo: codigoCupon,
+          total: subtotal,
+          clienteId: user?.id
+        }),
       });
+
       const data = await res.json();
-      if (!res.ok) throw new Error();
+
+      if (!res.ok) {
+        throw new Error(data?.error?.message || data?.message || "Cupón inválido");
+      }
+
       setDescuento(Math.min(Number(data.descuento) || 0, subtotal));
-      setCuponMsg("Cupón aplicado correctamente");
-    } catch {
+      setCuponMsg(data.message || "Cupón aplicado correctamente");
+    } catch (err: any) {
       setDescuento(0);
-      setCuponMsg("Cupón inválido");
-    } finally { setAplicandoCupon(false); }
+      setCuponMsg(err.message || "Cupón inválido");
+    } finally {
+      setAplicandoCupon(false);
+    }
   }
 
-  /* ================= CONFIRMAR PAGO (LÓGICA ANTI-ERRORES) ================= */
+  /* ================= CONFIRMAR PAGO ================= */
   async function handleConfirm() {
     setIsProcessing(true);
     setMsg(null);
@@ -107,38 +119,57 @@ export default function CheckoutPagoPage() {
     try {
       let orderId = `TEMP-${Date.now()}`;
 
-      // 1. Intentamos Strapi, pero si falla NO cortamos el flujo
-      try {
-        const itemsParaStrapi = items.map((item: any) => ({
+      // Armamos los items limpiamente, incluyendo los nuevos campos de grabado
+      const itemsParaStrapi = items.map((item: any) => {
+        const i: any = {
           producto: item.productId,
           product: item.productId,
           cantidad: item.cantidad,
           precio: item.precioUnitario
-        }));
+        };
+        if (item.variantId) i.variantId = item.variantId;
+        if (item.grabado) i.grabado = item.grabado;
+        if (item.textoGrabado) i.textoGrabado = item.textoGrabado;
+        return i;
+      });
 
-        const orden = await fetchFromStrapi("/ordens", {
-          method: "POST",
-          body: JSON.stringify({
-            data: {
-              buyer,
-              shipping: { ...shipping, costoEnvio: envioPrecio },
-              items: itemsParaStrapi,
-              total: totalPagar,
-              cliente: user?.id || null, 
-            },
-          }),
-        });
-        if (orden?.data?.id) orderId = orden.data.id;
-      } catch (e) {
-        console.warn("Aviso: Error al conectar con Strapi, usando ID temporal para Mercado Pago.");
+      // Armamos el payload dinámico para evitar enviar nulls a Strapi
+      const dataPayload: any = {
+        buyer,
+        shipping: { ...shipping, costoEnvio: envioPrecio },
+        items: itemsParaStrapi,
+        total: totalPagar,
+      };
+
+      if (user?.id) dataPayload.cliente = user.id;
+      if (cuponAplicado && codigoCupon) dataPayload.codigo_cupon = codigoCupon;
+
+      const orden = await fetchFromStrapi("/ordens", {
+        method: "POST",
+        body: JSON.stringify({ data: dataPayload }),
+      });
+
+      // Si Strapi rechaza la orden, capturamos el mensaje exacto
+      if (orden?.error) {
+        const errorDetail = orden.error.message || JSON.stringify(orden.error);
+        throw new Error(errorDetail);
       }
 
-      // 2. Mercado Pago (ESTO ES LO QUE TIENE QUE FUNCIONAR SÍ O SÍ)
-      const mpItems = items.map((item: any) => ({
-        title: item.nombre,
-        quantity: item.cantidad,
-        unit_price: Math.round(Number(item.precioUnitario) * (1 - factor)),
-      }));
+      if (orden?.data?.id) orderId = orden.data.id;
+
+      // Mercado Pago
+      const mpItems = items.map((item: any) => {
+        // Le agregamos el texto del grabado al título para que salga en el recibo
+        const tituloFinal = item.grabado && item.textoGrabado
+          ? `${item.nombre} (Grabado: ${item.textoGrabado})`
+          : item.nombre;
+
+        return {
+          title: tituloFinal,
+          quantity: item.cantidad,
+          unit_price: Math.round(Number(item.precioUnitario) * (1 - factor)),
+        };
+      });
 
       if (envioPrecio > 0) {
         mpItems.push({ title: "Costo de Envío", quantity: 1, unit_price: envioPrecio });
@@ -155,8 +186,9 @@ export default function CheckoutPagoPage() {
 
       clearCart();
       window.location.href = mpData.init_point;
-      
+
     } catch (err: any) {
+      // Ahora si falla algo de stock o datos, te lo va a escribir en rojo literal en la pantalla
       setMsg(err.message || "Hubo un error al iniciar el pago");
       setIsProcessing(false);
     }
@@ -172,32 +204,30 @@ export default function CheckoutPagoPage() {
         <div className="mt-12 space-y-3">
           {items.map((item: any) => {
             const precioOriginal = item.precioUnitario * item.cantidad;
-            const precioConDescuento = precioOriginal * (1 - factor);
             return (
-              <div key={`${item.productId}-${item.variantId}`} className="flex items-center justify-between rounded-2xl bg-[#6B5E54] px-6 py-5 text-white">
+              <div key={`${item.productId}-${item.variantId}`} className="flex items-center justify-between rounded-2xl bg-[#6B5E54] px-6 py-5 text-white shadow-sm">
                 <div className="flex items-center gap-4">
                   <img src={getImageFromCartItem(item)} alt={item.nombre} className="h-16 w-16 rounded-xl object-cover bg-white/10" />
                   <div>
                     <p className="font-medium">{item.nombre}</p>
                     <p className="text-xs opacity-80">Cantidad: {item.cantidad}</p>
+                    {/* Sumamos visualmente el detalle del grabado si lo tiene */}
+                    {item.grabado && item.textoGrabado && (
+                      <p className="text-xs text-[#86EFAC] font-medium mt-1">
+                        ✒️ Grabado: "{item.textoGrabado}"
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="text-right flex flex-col items-end justify-center">
-                  {cuponAplicado ? (
-                    <div>
-                      <span className="text-xs text-gray-300 line-through block mb-0.5">${precioOriginal.toLocaleString("es-AR")}</span>
-                      <span className="text-lg font-bold text-[#86EFAC]">${precioConDescuento.toLocaleString("es-AR", { maximumFractionDigits: 0 })}</span>
-                    </div>
-                  ) : (
-                    <span className="text-sm font-medium">${precioOriginal.toLocaleString("es-AR")}</span>
-                  )}
+                  <span className="text-sm font-medium">${precioOriginal.toLocaleString("es-AR")}</span>
                 </div>
               </div>
             );
           })}
 
           {envioPrecio > 0 && (
-            <div className="flex items-center justify-between rounded-2xl bg-[#EBE7E0] border border-[#D6CEC5] px-6 py-4 text-[#5C5149]">
+            <div className="flex items-center justify-between rounded-2xl bg-[#EBE7E0] border border-[#D6CEC5] px-6 py-4 text-[#5C5149] shadow-sm">
               <div className="flex items-center gap-4">
                 <div className="h-14 w-14 flex items-center justify-center rounded-xl bg-white text-2xl shadow-sm">🚚</div>
                 <div>
@@ -208,12 +238,25 @@ export default function CheckoutPagoPage() {
               <span className="text-sm font-bold">${envioPrecio.toLocaleString("es-AR")}</span>
             </div>
           )}
+
+          {cuponAplicado && (
+            <div className="flex items-center justify-between rounded-2xl bg-[#E8F5E9] border border-[#A5D6A7] px-6 py-4 text-[#2E7D32] shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="h-14 w-14 flex items-center justify-center rounded-xl bg-white text-2xl shadow-sm">🏷️</div>
+                <div>
+                  <p className="font-bold text-sm uppercase tracking-wide">Descuento aplicado</p>
+                  <p className="text-xs text-green-700 font-medium">{codigoCupon}</p>
+                </div>
+              </div>
+              <span className="text-sm font-bold">- ${descuento.toLocaleString("es-AR")}</span>
+            </div>
+          )}
         </div>
 
         <div className="mt-8 flex flex-col gap-2">
           <div className="flex items-center gap-3">
             <input value={codigoCupon} disabled={cuponAplicado || aplicandoCupon} onChange={(e) => setCodigoCupon(e.target.value.toUpperCase())} placeholder="CÓDIGO DE CUPÓN" className="rounded-full bg-[#E5DED6] px-5 py-2 text-xs w-48 focus:outline-none focus:ring-1 focus:ring-[#6B5E54]" />
-            <button onClick={aplicarCupon} disabled={aplicandoCupon || cuponAplicado} className="rounded-full bg-[#6B5E54] px-5 py-2 text-xs text-white shadow-sm">
+            <button onClick={aplicarCupon} disabled={aplicandoCupon || cuponAplicado || !codigoCupon} className="rounded-full bg-[#6B5E54] px-5 py-2 text-xs text-white shadow-sm disabled:opacity-50 transition-colors hover:bg-[#5a4e46]">
               {cuponAplicado ? "APLICADO" : aplicandoCupon ? "..." : "Aplicar"}
             </button>
           </div>
@@ -221,8 +264,16 @@ export default function CheckoutPagoPage() {
         </div>
 
         <div className="mt-12 flex justify-end">
-          <div className="rounded-full bg-[#6B5E54] px-10 py-4 text-white font-bold text-xl shadow-lg">
-            Total: ${totalPagar.toLocaleString("es-AR")}
+          <div className="rounded-full bg-[#6B5E54] px-10 py-4 text-white shadow-lg flex items-center gap-3">
+            <span className="font-bold text-xl">Total:</span>
+            {cuponAplicado && (
+              <span className="text-sm text-gray-300 line-through font-medium">
+                ${precioOriginalTotal.toLocaleString("es-AR")}
+              </span>
+            )}
+            <span className={`font-bold text-xl ${cuponAplicado ? "text-[#86EFAC]" : ""}`}>
+              ${totalPagar.toLocaleString("es-AR")}
+            </span>
           </div>
         </div>
 
