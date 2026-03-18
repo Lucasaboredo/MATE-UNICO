@@ -37,22 +37,39 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addToCart = (newItem: CartItem) => {
     setItems((prev) => {
-      const existing = prev.find(i => i.productId === newItem.productId && i.variantId === newItem.variantId);
+      const existing = prev.find(i => 
+        i.productId === newItem.productId && 
+        i.variantId === newItem.variantId &&
+        i.textoGrabado === newItem.textoGrabado
+      );
+      
       if (existing) {
-        return prev.map(i => i.productId === newItem.productId && i.variantId === newItem.variantId 
-          ? { ...i, cantidad: i.cantidad + newItem.cantidad } : i);
+        return prev.map(i => 
+          i.productId === newItem.productId && 
+          i.variantId === newItem.variantId &&
+          i.textoGrabado === newItem.textoGrabado
+            ? { ...i, cantidad: i.cantidad + newItem.cantidad } : i
+        );
       }
       return [...prev, newItem];
     });
   };
 
   const updateQuantity = (target: CartItem, n: number) => {
-    setItems(prev => prev.map(i => i.productId === target.productId && i.variantId === target.variantId 
-      ? { ...i, cantidad: Math.max(1, n) } : i));
+    setItems(prev => prev.map(i => 
+      i.productId === target.productId && 
+      i.variantId === target.variantId &&
+      i.textoGrabado === target.textoGrabado
+        ? { ...i, cantidad: Math.max(1, n) } : i
+    ));
   };
 
   const removeFromCart = (target: CartItem) => {
-    setItems(prev => prev.filter(i => !(i.productId === target.productId && i.variantId === target.variantId)));
+    setItems(prev => prev.filter(i => !(
+      i.productId === target.productId && 
+      i.variantId === target.variantId &&
+      i.textoGrabado === target.textoGrabado
+    )));
   };
 
   const clearCart = () => {

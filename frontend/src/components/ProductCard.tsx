@@ -40,6 +40,7 @@ export default function ProductCard({ producto }: Props) {
         slug: producto.slug,
         precioBase: producto.precioBase,
         imagen: producto.imagen ?? [],
+        variantes: producto.variantes ?? [],
         en_promocion: producto.en_promocion,
         precio_oferta: producto.precio_oferta
       };

@@ -211,7 +211,7 @@ export default function ProductoDetalleView({ producto, relacionados }: Props) {
         const API_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "http://127.0.0.1:1337";
 
         const res = await fetch(
-          `${API_URL}/api/ordens?filters[cliente][id][$eq]=${user.id}&pagination[pageSize]=100`,
+          `${API_URL}/api/ordens/mis-ordenes`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -230,6 +230,8 @@ export default function ProductoDetalleView({ producto, relacionados }: Props) {
         const ordens = data?.data ?? [];
 
         const purchased = ordens.some((o: any) => {
+          if (o.estado !== "pagado") return false;
+
           const attrs = o?.attributes ?? o;
           const items = attrs?.items ?? [];
           if (!Array.isArray(items)) return false;

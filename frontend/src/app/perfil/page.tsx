@@ -232,15 +232,15 @@ export default function PerfilPage() {
                                                     {o.items && Array.isArray(o.items) && o.items.map((item: any, index: number) => (
                                                         <div key={index} className="flex items-center gap-4">
                                                             <div className="w-12 h-12 bg-gray-100 rounded-md overflow-hidden flex-shrink-0 border border-gray-200">
-                                                                <img src={getImageUrl(item.imagenUrl)} alt={item.nombre} className="w-full h-full object-cover" />
+                                                                <img src={getImageUrl(item.imagenUrl || item.imagen || item.product?.imagen?.url || item.producto?.imagen?.url || "")} alt={item.nombre} className="w-full h-full object-cover" />
                                                             </div>
                                                             <div className="flex-1">
                                                                 <p className="text-sm font-bold text-gray-800">{item.nombre}</p>
-                                                                <p className="text-xs text-gray-500">{item.cantidad} x ${Number(item.precioUnitario).toLocaleString("es-AR")}</p>
+                                                                <p className="text-xs text-gray-500">{item.cantidad} x ${Number(item.precioUnitario || item.precio || 0).toLocaleString("es-AR")}</p>
                                                             </div>
                                                             {o.estado === 'pagado' && (
                                                                 <button 
-                                                                    onClick={() => router.push(`/productos/${item.slug}`)}
+                                                                    onClick={() => router.push(`/productos/${item.slug || item.product?.slug || item.producto?.slug || ""}`)}
                                                                     className="text-xs font-bold text-[#2F4A2D] hover:underline"
                                                                 >
                                                                     Opinar
@@ -249,6 +249,29 @@ export default function PerfilPage() {
                                                         </div>
                                                     ))}
                                                 </div>
+                                                {o.estado !== 'pagado' && (
+                                                    <div className="bg-[#FFF5F5] px-6 py-3 border-t border-red-50 flex justify-end">
+                                                        <button 
+                                                            onClick={async () => {
+                                                                if (!window.confirm("¿Seguro que querés cancelar esta orden?")) return;
+                                                                try {
+                                                                    const res = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL || "http://127.0.0.1:1337"}/api/ordens/mis-ordenes/${o.id}`, {
+                                                                        method: "DELETE",
+                                                                        headers: { Authorization: `Bearer ${token}` },
+                                                                    });
+                                                                    if (!res.ok) throw new Error("Error al eliminar");
+                                                                    setOrders(orders.filter(order => order.id !== o.id));
+                                                                } catch (error) {
+                                                                    alert("Hubo un error al eliminar la orden");
+                                                                }
+                                                            }}
+                                                            className="text-lg text-red-600 hover:text-red-800 transition-colors flex items-center justify-center p-2 rounded-md hover:bg-red-50"
+                                                            title="Eliminar orden"
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>

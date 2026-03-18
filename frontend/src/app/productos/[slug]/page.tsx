@@ -28,7 +28,7 @@ export default async function Page({ params }: Props) {
     }
 
     const destacadosRes = await fetchFromStrapi(
-      `/productos?filters[destacado][$eq]=true&filters[slug][$ne]=${slug}&pagination[limit]=3&populate=imagen`
+      `/productos?filters[destacado][$eq]=true&filters[slug][$ne]=${slug}&pagination[limit]=3&populate[imagen]=true&populate[variantes]=true`
     );
 
     const relacionados = destacadosRes.data || [];

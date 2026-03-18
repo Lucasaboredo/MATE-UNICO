@@ -38,9 +38,13 @@ export default function RegistrarsePage() {
                 throw new Error(data.error?.message || "Error al registrarse");
             }
 
-            // Si sale bien, logueamos automáticamente al usuario
-            login(data.jwt, data.user);
-            router.push("/perfil");
+            // Si Strapi requiere verificación de email, no devuelve JWT
+            if (!data.jwt) {
+                setError("Registro exitoso. Por favor revisa tu correo electrónico para verificar tu cuenta antes de iniciar sesión.");
+            } else {
+                login(data.jwt, data.user);
+                router.push("/perfil");
+            }
 
         } catch (err: any) {
             setError(err.message);

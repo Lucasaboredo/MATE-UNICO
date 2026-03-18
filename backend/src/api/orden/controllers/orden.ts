@@ -79,5 +79,40 @@ export default factories.createCoreController('api::orden.orden', ({ strapi }) =
     } catch (error) {
       return ctx.badRequest("Error al buscar órdenes");
     }
+  },
+
+  async deleteMine(ctx) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized('No estás autenticado');
+
+    const { id } = ctx.params;
+    if (!id) return ctx.badRequest('ID de orden no proporcionado');
+
+    try {
+      // Find the order to make sure it belongs to the user
+      const order: any = await strapi.entityService.findOne('api::orden.orden', id, {
+        populate: ['cliente']
+      });
+
+      if (!order) {
+        return ctx.notFound('Orden no encontrada');
+      }
+
+      // Ensure the order belongs to the user requesting the delete
+      if (order.cliente?.id !== user.id) {
+        return ctx.unauthorized('No tienes permiso para eliminar esta orden');
+      }
+
+      // Check if order is paid -- we shouldn't delete paid orders
+      if (order.estado === 'pagado') {
+        return ctx.badRequest('No se pueden eliminar órdenes ya pagadas');
+      }
+
+      // Delete the order
+      const deleted = await strapi.entityService.delete('api::orden.orden', id);
+      return { data: await this.sanitizeOutput(deleted, ctx) };
+    } catch (error) {
+      return ctx.badRequest("Error al eliminar la orden");
+    }
   }
 }));

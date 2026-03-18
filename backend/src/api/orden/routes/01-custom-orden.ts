@@ -9,5 +9,14 @@ export default {
                 middlewares: [],
             },
         },
+        {
+            method: 'DELETE',
+            path: '/ordens/mis-ordenes/:id',
+            handler: 'orden.deleteMine',
+            config: {
+                policies: [],
+                middlewares: [],
+            },
+        },
     ],
 };

@@ -125,7 +125,10 @@ export default function CheckoutPagoPage() {
           producto: item.productId,
           product: item.productId,
           cantidad: item.cantidad,
-          precio: item.precioUnitario
+          precio: item.precioUnitario,
+          nombre: item.nombre,
+          slug: item.slug,
+          imagenUrl: item.imagenUrl
         };
         if (item.variantId) i.variantId = item.variantId;
         if (item.grabado) i.grabado = item.grabado;
@@ -184,7 +187,6 @@ export default function CheckoutPagoPage() {
       const mpData = await mpRes.json();
       if (!mpData.init_point) throw new Error("No se pudo generar el link de Mercado Pago");
 
-      clearCart();
       window.location.href = mpData.init_point;
 
     } catch (err: any) {

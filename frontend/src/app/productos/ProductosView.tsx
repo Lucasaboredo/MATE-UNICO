@@ -24,7 +24,7 @@ const COLORES = [
   { label: "Blanco", value: "blanco", dotClass: "bg-white border border-gray-300" },
   { label: "Negro", value: "negro", dotClass: "bg-black" },
   { label: "Gris", value: "gris", dotClass: "bg-gray-500" },
-  { label: "Marrón", value: "marrón", dotClass: "bg-[#964B00]" },
+  { label: "Marrón", value: "marron", dotClass: "bg-[#964B00]" },
   { label: "Bordo", value: "bordo", dotClass: "bg-[#8B0000]" },
 ];
 
@@ -95,14 +95,14 @@ export default function ProductosView({ productos }: { productos: any[] }) {
   return (
     <main className="w-full bg-[#F4F1EB] min-h-screen font-sans text-[#5C5149]">
       <section className="mx-auto max-w-[1400px] px-6 py-12 flex flex-col md:flex-row gap-12">
-        
+
         {/* ================= SIDEBAR (Filtros) ================= */}
         <aside className="w-full md:w-64 flex-shrink-0">
           <div className="sticky top-8 space-y-8">
-            
+
             <div>
               <h2 className="text-3xl font-bold text-[#5C5149] mb-4">Productos</h2>
-              <button 
+              <button
                 onClick={limpiarFiltros}
                 className="text-sm text-[#5C5149]/60 hover:text-[#486837] underline decoration-transparent hover:decoration-current transition-all"
               >
@@ -131,15 +131,15 @@ export default function ProductosView({ productos }: { productos: any[] }) {
 
             {/* --- BUSCADOR --- */}
             <div className="relative">
-              <input 
+              <input
                 type="text"
                 placeholder="Buscar mate..."
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 className="w-full bg-white border border-[#E0DCD3] rounded-lg px-4 py-3 pl-10 text-sm outline-none focus:ring-2 focus:ring-[#5C5149]/20 transition-all"
               />
-              <svg 
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5C5149]/50" 
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5C5149]/50"
                 fill="none" viewBox="0 0 24 24" stroke="currentColor"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -157,11 +157,10 @@ export default function ProductosView({ productos }: { productos: any[] }) {
                       <button
                         type="button"
                         onClick={() => setCategoria(active ? null : c.value)}
-                        className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
-                          active
-                            ? "bg-[#5C5149] text-white font-medium shadow-sm"
-                            : "text-[#5C5149]/80 hover:bg-[#E0DCD3]/50"
-                        }`}
+                        className={`w-full text-left px-3 py-2 rounded-md transition-colors ${active
+                          ? "bg-[#5C5149] text-white font-medium shadow-sm"
+                          : "text-[#5C5149]/80 hover:bg-[#E0DCD3]/50"
+                          }`}
                       >
                         {c.label}
                       </button>
@@ -182,11 +181,10 @@ export default function ProductosView({ productos }: { productos: any[] }) {
                       <button
                         type="button"
                         onClick={() => setCombo(active ? null : c.value)}
-                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                          active
-                            ? "bg-[#5C5149]/10 text-[#5C5149] font-bold border border-[#5C5149]/20"
-                            : "text-[#5C5149]/70 hover:text-[#5C5149] hover:bg-[#E0DCD3]/30"
-                        }`}
+                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${active
+                          ? "bg-[#5C5149]/10 text-[#5C5149] font-bold border border-[#5C5149]/20"
+                          : "text-[#5C5149]/70 hover:text-[#5C5149] hover:bg-[#E0DCD3]/30"
+                          }`}
                       >
                         {c.label}
                       </button>
@@ -206,9 +204,8 @@ export default function ProductosView({ productos }: { productos: any[] }) {
                     <li
                       key={c.label}
                       onClick={() => setColor(active ? null : c.value)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer transition-all ${
-                         active ? "bg-white shadow-sm ring-1 ring-[#5C5149]/10" : "hover:bg-[#E0DCD3]/30"
-                      }`}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer transition-all ${active ? "bg-white shadow-sm ring-1 ring-[#5C5149]/10" : "hover:bg-[#E0DCD3]/30"
+                        }`}
                     >
                       <span
                         className={`w-5 h-5 rounded-full shadow-sm ${c.dotClass} ${active ? "ring-2 ring-offset-2 ring-[#5C5149]" : ""}`}
@@ -257,8 +254,8 @@ export default function ProductosView({ productos }: { productos: any[] }) {
           ) : (
             <div className="flex flex-col items-center justify-center py-20 bg-white/50 rounded-xl border border-dashed border-[#E0DCD3]">
               <p className="text-lg font-medium text-[#5C5149] mb-2">No encontramos mates con esos filtros.</p>
-              <button 
-                onClick={limpiarFiltros} 
+              <button
+                onClick={limpiarFiltros}
                 className="mt-6 px-6 py-2 bg-[#5C5149] text-white rounded-lg hover:bg-[#4a413a] transition-colors text-sm font-medium"
               >
                 Limpiar todos los filtros

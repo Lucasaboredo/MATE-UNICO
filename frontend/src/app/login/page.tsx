@@ -45,6 +45,9 @@ export default function LoginPage() {
             const data = await res.json();
 
             if (!res.ok) {
+                if (data.error?.message === "Your account email is not confirmed") {
+                    throw new Error("Por favor revisa tu correo y verifica tu cuenta antes de iniciar sesión.");
+                }
                 throw new Error("Email o contraseña incorrectos");
             }
 
@@ -94,6 +97,11 @@ export default function LoginPage() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                         />
+                        <div className="flex justify-end mt-1">
+                            <Link href="/recuperar-clave" className="text-xs text-[#2F4A2D] hover:underline">
+                                ¿Olvidaste tu contraseña?
+                            </Link>
+                        </div>
                     </div>
 
                     {error && <p className="text-red-600 text-sm text-center">{error}</p>}

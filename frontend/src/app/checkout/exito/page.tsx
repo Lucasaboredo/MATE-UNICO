@@ -2,10 +2,18 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
+import { useCart } from "@/lib/cartContext";
 
 function SuccessContent() {
   const params = useSearchParams();
+  const { clearCart } = useCart();
+
+  useEffect(() => {
+    // Solo vaciamos el carrito una vez al montar la página de éxito
+    clearCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 1. Número de Orden (Tu referencia interna)
   const orderNumber =

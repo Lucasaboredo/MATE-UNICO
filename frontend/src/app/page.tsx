@@ -88,7 +88,7 @@ export default function Home() {
             </div>
           ) : promociones.length > 0 ? (
             /* ✨ AJUSTE: Mismo grid y centrado que Destacados */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 justify-items-center">
+            <div className="flex flex-wrap justify-center gap-8">
               {promociones.map((prod: any) => (
                 <div key={`promo-${prod.id}`} className="w-full max-w-[280px] flex justify-center">
                   <ProductCard producto={prod} />
@@ -119,10 +119,10 @@ export default function Home() {
           {loadingDestacados ? (
             <div className="text-center py-10 text-gray-400 animate-pulse">Cargando destacados...</div>
           ) : productosDestacados.length > 0 ? (
-            /* ✨ grid-cols-4 asegura que los 4 productos estén alineados en la misma línea */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 justify-items-center">
+            /* ✨ flex-wrap hace que se apilen hacia abajo si o si en mobile pero manteniendo 4 por fila en compu */
+            <div className="flex flex-wrap justify-center gap-8">
               {productosDestacados.map((prod: any) => (
-                <div key={`dest-${prod.id}`} className="w-full max-w-[280px] flex justify-center">
+                <div key={`dest-${prod.id}`} className="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] max-w-[280px] flex justify-center">
                   <ProductCard producto={prod} />
                 </div>
               ))}

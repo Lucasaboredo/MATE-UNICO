@@ -88,9 +88,9 @@ export default function CarritoPage() {
 
         {/* LISTA DE PRODUCTOS */}
         <div className="space-y-6">
-          {items.map((item) => (
+          {items.map((item, index) => (
             <CartItemRow
-              key={`${item.productId}-${item.variantId}`}
+              key={`${item.productId}-${item.variantId}-${item.textoGrabado || 'none'}-${index}`}
               item={item}
             />
           ))}
