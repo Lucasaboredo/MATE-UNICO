@@ -15,13 +15,20 @@ export default async function Page({ params }: Props) {
   const { slug } = await params;
 
   try {
-    // 👇 2. CAMBIO CLAVE: Agregamos &publicationState=preview
-    // Esto le dice a Strapi: "Dame la versión nueva (Draft), no la vieja publicada"
+    // 1. Intentamos buscar por slug primero
     const productoRes = await fetchFromStrapi(
       `/productos?filters[slug][$eq]=${slug}&populate[imagen]=true&populate[variantes]=true&populate[opinions]=true&publicationState=preview`
     );
 
-    const producto = productoRes.data?.[0];
+    let producto = productoRes.data?.[0];
+
+    // 2. Si no encontramos por slug, intentamos por documentId (fallback para productos sin slug)
+    if (!producto) {
+      const productoResFallback = await fetchFromStrapi(
+        `/productos?filters[documentId][$eq]=${slug}&populate[imagen]=true&populate[variantes]=true&populate[opinions]=true&publicationState=preview`
+      );
+      producto = productoResFallback.data?.[0];
+    }
 
     if (!producto) {
       return notFound();

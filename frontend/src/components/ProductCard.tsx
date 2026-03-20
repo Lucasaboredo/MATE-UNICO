@@ -17,6 +17,9 @@ export default function ProductCard({ producto }: Props) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFav, setIsFav] = useState(false);
 
+  // Usar documentId como fallback si slug es null
+  const productoSlug = producto.slug || producto.documentId;
+
   useEffect(() => {
     const raw = localStorage.getItem(FAVORITES_KEY);
     const favs = raw ? JSON.parse(raw) : [];
@@ -96,7 +99,7 @@ export default function ProductCard({ producto }: Props) {
           </svg>
         </button>
 
-        <Link href={`/productos/${producto.slug}`} className="block w-full h-full">
+        <Link href={`/productos/${productoSlug}`} className="block w-full h-full">
           {isOutOfStock && <div className="absolute z-10 left-3 top-3 px-3 py-1 bg-red-600 text-white text-[9px] font-black uppercase rounded-full">Sin stock</div>}
           {!isOutOfStock && isLowStock && <div className="absolute z-10 left-3 top-3 px-3 py-1 bg-[#4A4A40] text-white text-[9px] font-black uppercase rounded-full">Últimas unidades</div>}
           {tienePromo && !isOutOfStock && <div className="absolute z-10 left-3 bottom-3 bg-red-600 text-white px-2 py-1 rounded-lg text-[10px] font-black">{porcentaje}% OFF</div>}
@@ -113,7 +116,7 @@ export default function ProductCard({ producto }: Props) {
 
       <div className="text-center sm:text-left">
         <h2 className="text-[18px] font-bold text-[#FCFAF6] leading-tight truncate">
-          <Link href={`/productos/${producto.slug}`} className="hover:text-gray-300 transition-colors">{producto.nombre}</Link>
+          <Link href={`/productos/${productoSlug}`} className="hover:text-gray-300 transition-colors">{producto.nombre}</Link>
         </h2>
         <div className="mt-2 flex items-baseline gap-2 justify-center sm:justify-start">
           {tienePromo ? (

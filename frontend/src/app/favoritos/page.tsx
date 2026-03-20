@@ -50,7 +50,7 @@ export default function FavoritosPage() {
   // Evitar romper ProductCard si faltan campos
   const favoritosSeguros = useMemo(() => {
     return favoritos
-      .filter((p) => p && p.slug && p.nombre)
+      .filter((p) => p && p.nombre)
       .map((p) => ({
         ...p,
         precioBase: Number(p.precioBase ?? 0),
@@ -122,17 +122,7 @@ export default function FavoritosPage() {
           <div className="mt-12">
             <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 justify-items-center">
               {favoritosSeguros.map((prod: any) => (
-                <div key={prod.id} className="w-full max-w-[360px] relative">
-                  {/* Botón quitar (no cambia la estética del card) */}
-                  <button
-                    onClick={() => quitarFavorito(prod.id)}
-                    className="absolute z-10 top-3 right-3 rounded-full bg-white/90 border border-[#E0DCD3] px-3 py-1 text-xs font-bold text-[#5C5149] shadow-sm hover:bg-white transition"
-                    aria-label="Quitar de favoritos"
-                    title="Quitar de favoritos"
-                  >
-                    Quitar ✕
-                  </button>
-
+                <div key={prod.id} className="w-full max-w-[360px]">
                   <ProductCard producto={prod} />
                 </div>
               ))}
