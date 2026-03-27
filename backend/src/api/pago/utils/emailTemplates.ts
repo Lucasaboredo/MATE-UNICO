@@ -41,7 +41,7 @@ export function renderOrdenConfirmadaHTML(params: {
     })
     .join("");
 
-  const logoUrl = "https://via.placeholder.com/180x60?text=Mate+Unico"; // si tienen logo público lo cambiamos
+  const logoUrl = "cid:logoMateUnico"; // Adjunto local
 
   return `
   <div style="font-family: Arial, sans-serif; background:#f7f5f2; padding:24px;">

@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+
 import { renderOrdenConfirmadaHTML } from "../utils/emailTemplates";
 
 function getTransporter() {
@@ -81,7 +82,19 @@ export async function enviarEmailConfirmacionOrden(orderId: number, paymentId?: 
   const transporter = getTransporter();
 
   try {
-    await transporter.sendMail({ from, to, subject, html });
+    await transporter.sendMail({
+      from,
+      to,
+      subject,
+      html,
+      attachments: [
+        {
+          filename: "logo-mate.png",
+          path: require("path").join(process.cwd(), "public", "logo-mate.png"),
+          cid: "logoMateUnico",
+        },
+      ],
+    });
 
     console.log(`📨 [EMAIL] Confirmación enviada a ${to} (Orden #${orden.id}).`);
 
@@ -91,8 +104,10 @@ export async function enviarEmailConfirmacionOrden(orderId: number, paymentId?: 
 
     return { ok: true, alreadySent: false };
   } catch (err: any) {
-    console.error("❌ [EMAIL] Error enviando mail:", err?.message || err);
-    return { ok: false, reason: "smtp_error", error: err?.message || String(err) };
+    const errorMsg = err?.message || String(err);
+    console.error("❌ [EMAIL] Error enviando mail:", errorMsg);
+    require("fs").writeFileSync(require("path").join(process.cwd(), "email_error.log"), errorMsg);
+    return { ok: false, reason: "smtp_error", error: errorMsg };
   }
 }
 
