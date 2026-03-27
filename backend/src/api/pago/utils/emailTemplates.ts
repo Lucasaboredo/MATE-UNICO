@@ -21,14 +21,14 @@ export function renderOrdenConfirmadaHTML(params: {
 
   const direccionTexto = shipping
     ? [
-        shipping?.address?.street_name,
-        shipping?.address?.street_number,
-        shipping?.address?.zip_code ? `CP ${shipping.address.zip_code}` : null,
-        shipping?.receiver_address?.city_name,
-        shipping?.receiver_address?.state_name,
-      ]
-        .filter(Boolean)
-        .join(" ")
+      shipping?.address?.street_name,
+      shipping?.address?.street_number,
+      shipping?.address?.zip_code ? `CP ${shipping.address.zip_code}` : null,
+      shipping?.receiver_address?.city_name,
+      shipping?.receiver_address?.state_name,
+    ]
+      .filter(Boolean)
+      .join(" ")
     : "Dirección no disponible";
 
   const itemsHtml = (items || [])
